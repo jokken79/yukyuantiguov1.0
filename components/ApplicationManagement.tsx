@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { AppData, LeaveRecord } from '../types';
 import { db } from '../services/db';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ApplicationManagementProps {
   data: AppData;
@@ -9,6 +10,7 @@ interface ApplicationManagementProps {
 }
 
 const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onUpdate }) => {
+  const { isDark } = useTheme();
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [filterClient, setFilterClient] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -156,13 +158,13 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
   return (
     <div className="p-12 space-y-8 animate-fadeIn max-w-[1600px] mx-auto">
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-end gap-8 border-b border-white/5 pb-8">
+      <header className={`flex flex-col md:flex-row justify-between items-end gap-8 border-b pb-8 ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
         <div className="space-y-4">
           <div className="flex items-center gap-6">
             <div className={`h-14 w-2 ${stats.pending > 0 ? 'bg-yellow-500 shadow-[0_0_20px_#eab308]' : 'bg-green-500 shadow-[0_0_20px_#22c55e]'} animate-pulse`}></div>
-            <h2 className="text-6xl font-black italic tracking-tighter">申請管理</h2>
+            <h2 className={`text-6xl font-black italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-800'}`}>申請管理</h2>
           </div>
-          <p className="text-white/30 font-bold tracking-widest ml-8 text-sm">
+          <p className={`font-bold tracking-widest ml-8 text-sm ${isDark ? 'text-white/30' : 'text-slate-500'}`}>
             Application Management System
           </p>
         </div>
@@ -172,14 +174,14 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
             <button
               onClick={handleBulkApprove}
               disabled={selectedIds.size === 0}
-              className="px-6 py-3 bg-green-500 hover:bg-green-600 disabled:bg-white/10 disabled:text-white/30 text-black font-bold text-sm transition-all"
+              className={`px-6 py-3 bg-green-500 hover:bg-green-600 text-black font-bold text-sm transition-all ${selectedIds.size === 0 ? isDark ? 'disabled:bg-white/10 disabled:text-white/30' : 'disabled:bg-slate-200 disabled:text-slate-400' : ''}`}
             >
               一括承認 ({selectedIds.size})
             </button>
           )}
           <button
             onClick={exportToCSV}
-            className="px-6 py-3 bg-white/10 hover:bg-white/20 font-bold text-sm transition-all"
+            className={`px-6 py-3 font-bold text-sm transition-all ${isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'}`}
           >
             CSV出力
           </button>
@@ -190,69 +192,69 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <button
           onClick={() => setFilterStatus('pending')}
-          className={`p-6 border transition-all ${filterStatus === 'pending' ? 'border-yellow-500 bg-yellow-500/10' : 'border-white/10 bg-white/5 hover:border-yellow-500/50'}`}
+          className={`p-6 border transition-all ${filterStatus === 'pending' ? 'border-yellow-500 bg-yellow-500/10' : isDark ? 'border-white/10 bg-white/5 hover:border-yellow-500/50' : 'border-slate-200 bg-white hover:border-yellow-500/50 shadow-sm'}`}
         >
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">保留中</p>
-          <p className="text-4xl font-black text-yellow-400">{stats.pending}</p>
+          <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>保留中</p>
+          <p className="text-4xl font-black text-yellow-500">{stats.pending}</p>
         </button>
         <button
           onClick={() => setFilterStatus('approved')}
-          className={`p-6 border transition-all ${filterStatus === 'approved' ? 'border-green-500 bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-green-500/50'}`}
+          className={`p-6 border transition-all ${filterStatus === 'approved' ? 'border-green-500 bg-green-500/10' : isDark ? 'border-white/10 bg-white/5 hover:border-green-500/50' : 'border-slate-200 bg-white hover:border-green-500/50 shadow-sm'}`}
         >
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">承認済</p>
-          <p className="text-4xl font-black text-green-400">{stats.approved}</p>
+          <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>承認済</p>
+          <p className="text-4xl font-black text-green-500">{stats.approved}</p>
         </button>
         <button
           onClick={() => setFilterStatus('rejected')}
-          className={`p-6 border transition-all ${filterStatus === 'rejected' ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-white/5 hover:border-red-500/50'}`}
+          className={`p-6 border transition-all ${filterStatus === 'rejected' ? 'border-red-500 bg-red-500/10' : isDark ? 'border-white/10 bg-white/5 hover:border-red-500/50' : 'border-slate-200 bg-white hover:border-red-500/50 shadow-sm'}`}
         >
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">却下</p>
-          <p className="text-4xl font-black text-red-400">{stats.rejected}</p>
+          <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>却下</p>
+          <p className="text-4xl font-black text-red-500">{stats.rejected}</p>
         </button>
         <button
           onClick={() => setFilterStatus('all')}
-          className={`p-6 border transition-all ${filterStatus === 'all' ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-white/5 hover:border-blue-500/50'}`}
+          className={`p-6 border transition-all ${filterStatus === 'all' ? 'border-blue-500 bg-blue-500/10' : isDark ? 'border-white/10 bg-white/5 hover:border-blue-500/50' : 'border-slate-200 bg-white hover:border-blue-500/50 shadow-sm'}`}
         >
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">全件</p>
-          <p className="text-4xl font-black text-blue-400">{stats.total}</p>
+          <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>全件</p>
+          <p className="text-4xl font-black text-blue-500">{stats.total}</p>
         </button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 p-4 bg-white/5 border border-white/10">
+      <div className={`flex flex-wrap gap-4 p-4 border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold text-white/40 uppercase">派遣先</label>
+          <label className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>派遣先</label>
           <select
             value={filterClient}
             onChange={(e) => setFilterClient(e.target.value)}
-            className="bg-black border border-white/20 text-xs font-bold p-2 outline-none min-w-[150px]"
+            className={`border text-xs font-bold p-2 outline-none min-w-[150px] ${isDark ? 'bg-black border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
           >
             <option value="">すべて</option>
             {clients.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold text-white/40 uppercase">開始日</label>
+          <label className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>開始日</label>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="bg-black border border-white/20 text-xs font-bold p-2 outline-none"
+            className={`border text-xs font-bold p-2 outline-none ${isDark ? 'bg-black border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold text-white/40 uppercase">終了日</label>
+          <label className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>終了日</label>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="bg-black border border-white/20 text-xs font-bold p-2 outline-none"
+            className={`border text-xs font-bold p-2 outline-none ${isDark ? 'bg-black border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
           />
         </div>
         <div className="flex items-end">
           <button
             onClick={() => { setFilterClient(''); setDateFrom(''); setDateTo(''); setFilterStatus('all'); }}
-            className="px-4 py-2 text-xs font-bold text-white/40 hover:text-white transition-all"
+            className={`px-4 py-2 text-xs font-bold transition-all ${isDark ? 'text-white/40 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}
           >
             リセット
           </button>
@@ -260,11 +262,11 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
       </div>
 
       {/* Table */}
-      <div className="border border-white/10 overflow-hidden">
+      <div className={`border overflow-hidden ${isDark ? 'border-white/10' : 'border-slate-200 shadow-sm'}`}>
         {filteredRecords.length > 0 ? (
           <table className="w-full">
-            <thead className="bg-white/5">
-              <tr className="text-[10px] font-black uppercase tracking-widest text-white/40">
+            <thead className={isDark ? 'bg-white/5' : 'bg-slate-50'}>
+              <tr className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
                 {stats.pending > 0 && filterStatus !== 'approved' && filterStatus !== 'rejected' && (
                   <th className="p-4 text-left w-10">
                     <input
@@ -285,13 +287,13 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                 <th className="p-4 text-center">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
               {filteredRecords.map(record => {
                 const emp = getEmployeeInfo(record.employeeId);
                 const isPending = record.status === 'pending';
 
                 return (
-                  <tr key={record.id} className="hover:bg-white/[0.02] transition-all">
+                  <tr key={record.id} className={`transition-all ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-slate-50'}`}>
                     {stats.pending > 0 && filterStatus !== 'approved' && filterStatus !== 'rejected' && (
                       <td className="p-4">
                         {isPending && (
@@ -305,21 +307,21 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                       </td>
                     )}
                     <td className="p-4">{getStatusBadge(record.status)}</td>
-                    <td className="p-4 font-bold text-lg">{record.date}</td>
+                    <td className={`p-4 font-bold text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{record.date}</td>
                     <td className="p-4">
-                      <div className="font-bold">{emp?.name || '不明'}</div>
-                      <div className="text-xs text-white/40">№{record.employeeId}</div>
+                      <div className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{emp?.name || '不明'}</div>
+                      <div className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-500'}`}>№{record.employeeId}</div>
                     </td>
-                    <td className="p-4 text-sm text-white/60">{emp?.client || '不明'}</td>
+                    <td className={`p-4 text-sm ${isDark ? 'text-white/60' : 'text-slate-600'}`}>{emp?.client || '不明'}</td>
                     <td className="p-4">
                       <span className={`text-xs font-bold ${record.type === 'paid' ? 'text-blue-400' : record.type === 'special' ? 'text-purple-400' : 'text-gray-400'}`}>
                         {record.type === 'paid' ? '有給' : record.type === 'special' ? '特別' : '欠勤'}
                       </span>
                     </td>
-                    <td className="p-4 text-xs text-white/40">
+                    <td className={`p-4 text-xs ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
                       {new Date(record.createdAt).toLocaleDateString('ja-JP')}
                     </td>
-                    <td className="p-4 text-xs text-white/40 max-w-[150px] truncate">
+                    <td className={`p-4 text-xs max-w-[150px] truncate ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
                       {record.note || '-'}
                     </td>
                     <td className="p-4">
@@ -327,19 +329,19 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                         <div className="flex gap-2 justify-center">
                           <button
                             onClick={() => handleApprove(record.id!)}
-                            className="px-3 py-1 bg-green-500/20 hover:bg-green-500/40 text-green-400 text-xs font-bold rounded transition-all"
+                            className="px-3 py-1 bg-green-500/20 hover:bg-green-500/40 text-green-500 text-xs font-bold rounded transition-all"
                           >
                             承認
                           </button>
                           <button
                             onClick={() => handleReject(record.id!)}
-                            className="px-3 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 text-xs font-bold rounded transition-all"
+                            className="px-3 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-500 text-xs font-bold rounded transition-all"
                           >
                             却下
                           </button>
                         </div>
                       ) : (
-                        <div className="text-xs text-white/30 text-center">
+                        <div className={`text-xs text-center ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
                           {record.approvedAt && (
                             <span>{new Date(record.approvedAt).toLocaleDateString('ja-JP')}</span>
                           )}
@@ -352,15 +354,15 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
             </tbody>
           </table>
         ) : (
-          <div className="p-20 text-center">
+          <div className={`p-20 text-center ${isDark ? 'bg-black' : 'bg-white'}`}>
             <div className="text-6xl opacity-10 mb-4">📋</div>
-            <p className="text-white/30 font-bold">該当する申請がありません</p>
+            <p className={`font-bold ${isDark ? 'text-white/30' : 'text-slate-400'}`}>該当する申請がありません</p>
           </div>
         )}
       </div>
 
       {/* Footer info */}
-      <div className="text-xs text-white/20 text-center">
+      <div className={`text-xs text-center ${isDark ? 'text-white/20' : 'text-slate-400'}`}>
         表示件数: {filteredRecords.length} / 全{data.records.length}件
       </div>
     </div>

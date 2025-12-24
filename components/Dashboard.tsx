@@ -1,18 +1,20 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  Cell, PieChart, Pie, AreaChart, Area, ScatterChart, Scatter, ZAxis, Legend 
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Cell, PieChart, Pie, AreaChart, Area, ScatterChart, Scatter, ZAxis, Legend
 } from 'recharts';
 import { AppData, AIInsight, Employee } from '../types';
 import { analyzeLeaveData } from '../services/geminiService';
 import { exportEmployeesToCSV, exportToPDF } from '../services/exportService';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface DashboardProps {
   data: AppData;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ data }) => {
+  const { isDark } = useTheme();
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [loadingAI, setLoadingAI] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
@@ -83,17 +85,25 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     { label: '遵守率', value: Math.round(((data.employees.length - legalAlerts.length) / (data.employees.length || 1)) * 100), suffix: '%', color: 'blue' },
   ];
 
-  return (
-    <div className="p-12 space-y-12 animate-fadeIn max-w-[1800px] mx-auto relative pb-32">
-      <div className="absolute top-0 right-0 text-[18vw] font-black text-white/[0.01] select-none pointer-events-none italic tracking-tighter">分析</div>
+  // Theme-aware colors for charts
+  const chartColors = {
+    grid: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.05)',
+    axis: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)',
+    tooltipBg: isDark ? '#000' : '#fff',
+    tooltipBorder: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+  };
 
-      <header className="flex flex-col md:flex-row justify-between items-end gap-8 relative z-10 border-b border-white/5 pb-12">
+  return (
+    <div className={`p-12 space-y-12 animate-fadeIn max-w-[1800px] mx-auto relative pb-32`}>
+      <div className={`absolute top-0 right-0 text-[18vw] font-black select-none pointer-events-none italic tracking-tighter ${isDark ? 'text-white/[0.01]' : 'text-slate-900/[0.02]'}`}>分析</div>
+
+      <header className={`flex flex-col md:flex-row justify-between items-end gap-8 relative z-10 border-b pb-12 ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
         <div className="space-y-4">
           <div className="flex items-center gap-6">
             <div className={`h-14 w-2 ${legalAlerts.length > 0 ? 'bg-red-600 shadow-[0_0_20px_#ff004c]' : 'bg-blue-500 shadow-[0_0_20px_#00e5ff]'} animate-pulse`}></div>
-            <h2 className="text-7xl font-black italic tracking-tighter aggressive-text underline decoration-blue-500/30 decoration-8 underline-offset-8">データ分析</h2>
+            <h2 className={`text-7xl font-black italic tracking-tighter underline decoration-blue-500/30 decoration-8 underline-offset-8 ${isDark ? 'aggressive-text' : 'text-slate-800'}`}>データ分析</h2>
           </div>
-          <div className="flex items-center gap-4 text-white/30 font-black tracking-[0.4em] ml-8 text-sm">
+          <div className={`flex items-center gap-4 font-black tracking-[0.4em] ml-8 text-sm ${isDark ? 'text-white/30' : 'text-slate-500'}`}>
              <span>詳細分析モード</span>
              <span className="text-blue-500">●</span>
              <span>システム状態: 正常稼働中</span>
@@ -101,14 +111,14 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         </div>
 
         <div className="flex gap-4">
-          <button onClick={() => exportEmployeesToCSV(data.employees)} className="px-10 py-5 bg-black border border-white/10 hover:border-white/40 transition-all text-xs font-black tracking-widest text-white">CSV出力</button>
+          <button onClick={() => exportEmployeesToCSV(data.employees)} className={`px-10 py-5 border transition-all text-xs font-black tracking-widest ${isDark ? 'bg-black border-white/10 hover:border-white/40 text-white' : 'bg-white border-slate-200 hover:border-slate-400 text-slate-800'}`}>CSV出力</button>
           <button
             onClick={async () => {
               setExportingPDF(true);
               await exportToPDF('dashboard-full-view', `分析レポート_${Date.now()}.pdf`);
               setExportingPDF(false);
             }}
-            className="px-10 py-5 bg-white text-black hover:scale-105 transition-all text-xs font-black tracking-widest shadow-[0_0_40px_rgba(255,255,255,0.2)]"
+            className={`px-10 py-5 hover:scale-105 transition-all text-xs font-black tracking-widest ${isDark ? 'bg-white text-black shadow-[0_0_40px_rgba(255,255,255,0.2)]' : 'bg-blue-600 text-white shadow-lg'}`}
           >
             {exportingPDF ? '処理中...' : 'PDF出力'}
           </button>
@@ -118,22 +128,28 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       {/* KPI Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {kpis.map((kpi, i) => (
-          <div key={i} className={`bg-[#0a0a0a] p-12 border-t-4 ${kpi.color === 'red' && kpi.value > 0 ? 'border-red-600 shadow-[0_0_30px_rgba(255,0,76,0.1)]' : 'border-white/5'} hover:bg-[#111] transition-all`}>
-            <p className="text-[10px] font-black text-white/40 mb-8 tracking-[0.3em] uppercase">{kpi.label}</p>
+          <div key={i} className={`p-12 border-t-4 transition-all ${
+            kpi.color === 'red' && kpi.value > 0
+              ? 'border-red-600 shadow-[0_0_30px_rgba(255,0,76,0.1)]'
+              : isDark ? 'border-white/5' : 'border-slate-200'
+          } ${isDark ? 'bg-[#0a0a0a] hover:bg-[#111]' : 'bg-white hover:bg-slate-50 shadow-sm'}`}>
+            <p className={`text-[10px] font-black mb-8 tracking-[0.3em] uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{kpi.label}</p>
             <div className="flex items-baseline gap-3">
-              <h3 className={`text-7xl font-black tabular-nums tracking-tighter italic ${kpi.color === 'red' && kpi.value > 0 ? 'text-red-600' : 'text-white'}`}>{kpi.value}</h3>
-              <span className="text-xs font-black text-white/20 uppercase italic">{kpi.suffix}</span>
+              <h3 className={`text-7xl font-black tabular-nums tracking-tighter italic ${
+                kpi.color === 'red' && kpi.value > 0 ? 'text-red-600' : isDark ? 'text-white' : 'text-slate-800'
+              }`}>{kpi.value}</h3>
+              <span className={`text-xs font-black uppercase italic ${isDark ? 'text-white/20' : 'text-slate-400'}`}>{kpi.suffix}</span>
             </div>
           </div>
         ))}
       </div>
 
       <div id="dashboard-full-view" className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        
+
         {/* Row 1 Left: Monthly Trend (Big Area Chart) */}
-        <div className="lg:col-span-8 bg-[#0a0a0a] p-12 border border-white/5 relative group overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 text-white/5 font-black text-6xl italic select-none">推移</div>
-          <h3 className="text-3xl font-black italic tracking-tighter mb-12 flex items-center gap-4">
+        <div className={`lg:col-span-8 p-12 border relative group overflow-hidden ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <div className={`absolute top-0 right-0 p-8 font-black text-6xl italic select-none ${isDark ? 'text-white/5' : 'text-slate-100'}`}>推移</div>
+          <h3 className={`text-3xl font-black italic tracking-tighter mb-12 flex items-center gap-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>
             <span className="w-8 h-1 bg-blue-500"></span> 使用日数の月別推移
           </h3>
           <div className="h-[400px]">
@@ -141,40 +157,40 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
               <AreaChart data={monthlyTrendData}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00e5ff" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#00e5ff" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={isDark ? "#00e5ff" : "#3b82f6"} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={isDark ? "#00e5ff" : "#3b82f6"} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
-                <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={11} axisLine={false} tickLine={false} fontWeight="900" />
-                <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} axisLine={false} tickLine={false} fontWeight="900" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', padding: '20px', borderRadius: '0px' }}
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
+                <XAxis dataKey="name" stroke={chartColors.axis} fontSize={11} axisLine={false} tickLine={false} fontWeight="900" />
+                <YAxis stroke={chartColors.axis} fontSize={11} axisLine={false} tickLine={false} fontWeight="900" />
+                <Tooltip
+                  contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, padding: '20px', borderRadius: '0px' }}
                 />
-                <Area type="monotone" dataKey="value" stroke="#00e5ff" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
+                <Area type="monotone" dataKey="value" stroke={isDark ? "#00e5ff" : "#3b82f6"} strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Row 1 Right: Top 10 Ranking (Horizontal Bars) */}
-        <div className="lg:col-span-4 bg-[#0a0a0a] p-12 border border-white/5">
-          <h3 className="text-3xl font-black italic tracking-tighter mb-12">TOP 10 使用者</h3>
+        <div className={`lg:col-span-4 p-12 border ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <h3 className={`text-3xl font-black italic tracking-tighter mb-12 ${isDark ? 'text-white' : 'text-slate-800'}`}>TOP 10 使用者</h3>
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topUsers} layout="vertical">
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" stroke="rgba(255,255,255,0.7)" fontSize={10} axisLine={false} tickLine={false} width={80} fontWeight="900" />
-                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                <Bar dataKey="usedTotal" fill="#7000ff" barSize={12} radius={[0, 4, 4, 0]} />
+                <YAxis dataKey="name" type="category" stroke={chartColors.axis} fontSize={10} axisLine={false} tickLine={false} width={80} fontWeight="900" />
+                <Tooltip cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }} />
+                <Bar dataKey="usedTotal" fill={isDark ? "#7000ff" : "#8b5cf6"} barSize={12} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Row 2 Left: Pie Distribution (Clients) */}
-        <div className="lg:col-span-4 bg-[#0a0a0a] p-12 border border-white/5">
-          <h3 className="text-3xl font-black italic tracking-tighter mb-12 text-center">派遣先別分布</h3>
+        <div className={`lg:col-span-4 p-12 border ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <h3 className={`text-3xl font-black italic tracking-tighter mb-12 text-center ${isDark ? 'text-white' : 'text-slate-800'}`}>派遣先別分布</h3>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -192,24 +208,24 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend iconType="rect" layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '10px', fontWeight: '900', paddingTop: '20px' }} />
+                <Legend iconType="rect" layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '10px', fontWeight: '900', paddingTop: '20px', color: isDark ? '#fff' : '#334155' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Row 2 Center: Day of Week Pattern */}
-        <div className="lg:col-span-4 bg-[#0a0a0a] p-12 border border-white/5">
-          <h3 className="text-3xl font-black italic tracking-tighter mb-12">曜日別取得パターン</h3>
+        <div className={`lg:col-span-4 p-12 border ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <h3 className={`text-3xl font-black italic tracking-tighter mb-12 ${isDark ? 'text-white' : 'text-slate-800'}`}>曜日別取得パターン</h3>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dayOfWeekData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
-                <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={11} axisLine={false} tickLine={false} fontWeight="900" />
-                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
+                <XAxis dataKey="name" stroke={chartColors.axis} fontSize={11} axisLine={false} tickLine={false} fontWeight="900" />
+                <Tooltip cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }} />
                 <Bar dataKey="value" fill="#ff004c">
                   {dayOfWeekData.map((entry, index) => (
-                    <Cell key={index} fill={entry.name === '月' || entry.name === '金' ? '#ff004c' : '#444'} />
+                    <Cell key={index} fill={entry.name === '月' || entry.name === '金' ? '#ff004c' : isDark ? '#444' : '#cbd5e1'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -218,31 +234,31 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         </div>
 
         {/* Row 2 Right: AI Legal Insights (Compact) */}
-        <div className="lg:col-span-4 bg-[#0a0a0a] border border-white/5 p-12">
-          <h3 className="text-2xl font-black italic tracking-tighter text-white mb-8">AIコンプライアンス分析</h3>
+        <div className={`lg:col-span-4 border p-12 ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <h3 className={`text-2xl font-black italic tracking-tighter mb-8 ${isDark ? 'text-white' : 'text-slate-800'}`}>AIコンプライアンス分析</h3>
           <div className="space-y-6">
             {loadingAI ? (
-              [1, 2].map(i => <div key={i} className="h-28 bg-white/[0.02] animate-pulse border border-white/5"></div>)
+              [1, 2].map(i => <div key={i} className={`h-28 animate-pulse border ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-slate-100 border-slate-200'}`}></div>)
             ) : insights.map((insight, i) => (
               <div key={i} className={`p-6 border-l-4 ${insight.type === 'warning' ? 'border-red-600 bg-red-600/5' : 'border-blue-500 bg-blue-500/5'}`}>
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-2">{insight.title}</h4>
-                <p className="text-[11px] text-white/40 leading-relaxed font-bold italic">{insight.description}</p>
+                <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${isDark ? 'text-white/70' : 'text-slate-600'}`}>{insight.title}</h4>
+                <p className={`text-[11px] leading-relaxed font-bold italic ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{insight.description}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Final Row: Scatter Efficiency (付与日数 vs 消化日数) */}
-        <div className="lg:col-span-12 bg-[#0a0a0a] p-12 border border-white/5">
-          <h3 className="text-3xl font-black italic tracking-tighter mb-12 flex items-center gap-4">
+        <div className={`lg:col-span-12 p-12 border ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <h3 className={`text-3xl font-black italic tracking-tighter mb-12 flex items-center gap-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>
              <span className="w-8 h-1 bg-yellow-500"></span> 取得効率・散布図分析 (付与日数 vs 消化日数)
           </h3>
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid stroke="rgba(255,255,255,0.05)" />
-                <XAxis type="number" dataKey="grantedTotal" name="付与日数" unit="日" stroke="rgba(255,255,255,0.4)" fontSize={11} fontWeight="900" />
-                <YAxis type="number" dataKey="usedTotal" name="消化日数" unit="日" stroke="rgba(255,255,255,0.4)" fontSize={11} fontWeight="900" />
+                <CartesianGrid stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"} />
+                <XAxis type="number" dataKey="grantedTotal" name="付与日数" unit="日" stroke={chartColors.axis} fontSize={11} fontWeight="900" />
+                <YAxis type="number" dataKey="usedTotal" name="消化日数" unit="日" stroke={chartColors.axis} fontSize={11} fontWeight="900" />
                 <ZAxis type="number" range={[100, 1000]} />
                 <Tooltip cursor={{ strokeDasharray: '3 3' }} />
                 <Scatter name="従業員" data={data.employees} fill="#eab308">
@@ -253,7 +269,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
               </ScatterChart>
             </ResponsiveContainer>
           </div>
-          <p className="mt-6 text-[10px] font-black text-white/20 uppercase tracking-widest text-center italic">
+          <p className={`mt-6 text-[10px] font-black uppercase tracking-widest text-center italic ${isDark ? 'text-white/20' : 'text-slate-400'}`}>
             ※ 赤いプロットは法的リスク対象（10日以上付与かつ5日未満消化）を示しています
           </p>
         </div>

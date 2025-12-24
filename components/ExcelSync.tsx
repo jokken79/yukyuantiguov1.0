@@ -22,8 +22,9 @@ const YUKYU_SHEETS = [
 
 // Estado de sincronización guardado en localStorage
 interface SyncStatus {
-  daicho: { synced: boolean; count: number; lastSync: string | null };
-  yukyu: { synced: boolean; count: number; lastSync: string | null };
+  daicho: { synced: boolean; count: number; activeCount: number; resignedCount: number; lastSync: string | null };
+  yukyu: { synced: boolean; count: number; activeCount: number; resignedCount: number; lastSync: string | null };
+  includeResigned: boolean;
 }
 
 const SYNC_STATUS_KEY = 'yukyu_sync_status';
@@ -34,8 +35,9 @@ const loadSyncStatus = (): SyncStatus => {
     if (saved) return JSON.parse(saved);
   } catch {}
   return {
-    daicho: { synced: false, count: 0, lastSync: null },
-    yukyu: { synced: false, count: 0, lastSync: null }
+    daicho: { synced: false, count: 0, activeCount: 0, resignedCount: 0, lastSync: null },
+    yukyu: { synced: false, count: 0, activeCount: 0, resignedCount: 0, lastSync: null },
+    includeResigned: false
   };
 };
 
@@ -87,8 +89,13 @@ const extractYukyuDates = (row: any): string[] => {
 };
 
 // Procesar DAICHO
-const processDaicho = (workbook: XLSX.WorkBook, existingEmployees: Employee[]): { employees: Employee[]; count: number } => {
-  let totalCount = 0;
+const processDaicho = (
+  workbook: XLSX.WorkBook,
+  existingEmployees: Employee[],
+  includeResigned: boolean
+): { employees: Employee[]; count: number; activeCount: number; resignedCount: number } => {
+  let activeCount = 0;
+  let resignedCount = 0;
 
   DAICHO_SHEETS.forEach(({ name: sheetName, category }) => {
     if (!workbook.SheetNames.includes(sheetName)) return;
@@ -106,6 +113,14 @@ const processDaicho = (workbook: XLSX.WorkBook, existingEmployees: Employee[]): 
       const client = findValue(row, ['派遣先', '請負業務', '事務所', '工場', '部署', '勤務地']);
       const statusRaw = findValue(row, ['現在', '在職中', '状態', 'ステータス', 'Status']);
       const status = normalizeStatus(statusRaw);
+
+      // Contar por estado
+      if (status === '退社') {
+        resignedCount++;
+        if (!includeResigned) return; // Saltar si no incluimos退社
+      } else {
+        activeCount++;
+      }
 
       const existingIdx = existingEmployees.findIndex(emp => emp.id === id);
 
@@ -135,22 +150,28 @@ const processDaicho = (workbook: XLSX.WorkBook, existingEmployees: Employee[]): 
           lastSync: new Date().toISOString()
         });
       }
-      totalCount++;
     });
   });
 
-  return { employees: existingEmployees, count: totalCount };
+  const count = includeResigned ? activeCount + resignedCount : activeCount;
+  return { employees: existingEmployees, count, activeCount, resignedCount };
 };
 
 // Procesar YUKYU
-const processYukyu = (workbook: XLSX.WorkBook, existingEmployees: Employee[]): { employees: Employee[]; count: number } => {
-  let totalCount = 0;
+const processYukyu = (
+  workbook: XLSX.WorkBook,
+  existingEmployees: Employee[],
+  includeResigned: boolean
+): { employees: Employee[]; count: number; activeCount: number; resignedCount: number } => {
+  let activeCount = 0;
+  let resignedCount = 0;
 
   const employeeYukyuMap: Map<string, {
     latestRow: any;
     latestMonths: number;
     allYukyuDates: string[];
     category: string;
+    status: string;
   }> = new Map();
 
   YUKYU_SHEETS.forEach(({ name: sheetName, category }) => {
@@ -164,6 +185,8 @@ const processYukyu = (workbook: XLSX.WorkBook, existingEmployees: Employee[]): {
       const id = String(findValue(row, ['社員№', '社員番号', '社員ID', 'ID', 'No', '№']));
       if (!id || id === 'undefined' || id === 'null' || id === '') return;
 
+      const statusRaw = findValue(row, ['在職中', '現在', '状態', 'ステータス', 'Status']);
+      const status = normalizeStatus(statusRaw);
       const elapsedMonths = Number(findValue(row, ['経過月', '経過月数'])) || 0;
       const yukyuDates = extractYukyuDates(row);
       const existing = employeeYukyuMap.get(id);
@@ -173,7 +196,8 @@ const processYukyu = (workbook: XLSX.WorkBook, existingEmployees: Employee[]): {
           latestRow: row,
           latestMonths: elapsedMonths,
           allYukyuDates: existing ? [...existing.allYukyuDates, ...yukyuDates] : yukyuDates,
-          category
+          category,
+          status
         });
       } else {
         existing.allYukyuDates.push(...yukyuDates);
@@ -181,12 +205,19 @@ const processYukyu = (workbook: XLSX.WorkBook, existingEmployees: Employee[]): {
     });
   });
 
-  employeeYukyuMap.forEach(({ latestRow, allYukyuDates, category }, id) => {
+  employeeYukyuMap.forEach(({ latestRow, allYukyuDates, category, status }, id) => {
+    // Contar por estado
+    if (status === '退社') {
+      resignedCount++;
+      if (!includeResigned) return; // Saltar si no incluimos退社
+    } else {
+      activeCount++;
+    }
+
     const row = latestRow;
     const name = findValue(row, ['氏名', '名前', '従業員名', 'Name']);
     const nameKana = findValue(row, ['カナ', 'かな', 'Kana']);
     const client = findValue(row, ['派遣先', '請負業務', '事務所', '工場', '部署', '勤務地']);
-    const statusRaw = findValue(row, ['在職中', '現在', '状態', 'ステータス', 'Status']);
 
     const entryDateRaw = findValue(row, ['入社日', '入社']);
     const elapsedTime = findValue(row, ['経過月数']);
@@ -200,7 +231,6 @@ const processYukyu = (workbook: XLSX.WorkBook, existingEmployees: Employee[]): {
     const expiredCount = Number(findValue(row, ['時効数', '時効', '消滅日数'])) || 0;
     const remainingAfterExpiry = Number(findValue(row, ['時効後残'])) || 0;
 
-    const status = normalizeStatus(statusRaw);
     const entryDate = excelDateToISO(entryDateRaw);
     const yukyuStartDate = excelDateToISO(yukyuStartDateRaw);
     const uniqueYukyuDates = [...new Set(allYukyuDates)].sort();
@@ -253,10 +283,10 @@ const processYukyu = (workbook: XLSX.WorkBook, existingEmployees: Employee[]): {
         lastSync: new Date().toISOString()
       });
     }
-    totalCount++;
   });
 
-  return { employees: existingEmployees, count: totalCount };
+  const count = includeResigned ? activeCount + resignedCount : activeCount;
+  return { employees: existingEmployees, count, activeCount, resignedCount };
 };
 
 // Componente Dropzone individual
@@ -266,15 +296,15 @@ interface DropzoneProps {
   subtitle: string;
   icon: string;
   color: string;
-  syncStatus: { synced: boolean; count: number; lastSync: string | null };
+  syncStatus: { synced: boolean; count: number; activeCount: number; resignedCount: number; lastSync: string | null };
   onProcess: (file: File) => void;
   loading: boolean;
+  includeResigned: boolean;
 }
 
-const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color, syncStatus, onProcess, loading }) => {
+const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color, syncStatus, onProcess, loading, includeResigned }) => {
   const [isDragging, setIsDragging] = useState(false);
 
-  const borderColor = syncStatus.synced ? `border-${color}-500/50` : 'border-white/10';
   const bgColor = isDragging ? `bg-${color}-500/5` : 'bg-[#0a0a0a]';
 
   return (
@@ -323,8 +353,19 @@ const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color,
 
           {/* Status */}
           {syncStatus.synced ? (
-            <div className={`text-${color}-400 text-sm font-bold`}>
-              <p>{syncStatus.count.toLocaleString()} 件同期済</p>
+            <div className="text-sm font-bold space-y-1">
+              <p className={`text-${color}-400`}>
+                {syncStatus.count.toLocaleString()} 件同期済
+              </p>
+              <div className="flex justify-center gap-4 text-xs">
+                <span className="text-green-400">在職中: {syncStatus.activeCount.toLocaleString()}</span>
+                {includeResigned && syncStatus.resignedCount > 0 && (
+                  <span className="text-red-400">退社: {syncStatus.resignedCount.toLocaleString()}</span>
+                )}
+                {!includeResigned && syncStatus.resignedCount > 0 && (
+                  <span className="text-white/30">(退社 {syncStatus.resignedCount} 件除外)</span>
+                )}
+              </div>
               {syncStatus.lastSync && (
                 <p className="text-xs text-white/30 mt-1">
                   {new Date(syncStatus.lastSync).toLocaleString('ja-JP')}
@@ -349,6 +390,13 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
     saveSyncStatus(syncStatus);
   }, [syncStatus]);
 
+  const toggleIncludeResigned = () => {
+    setSyncStatus(prev => ({
+      ...prev,
+      includeResigned: !prev.includeResigned
+    }));
+  };
+
   const processDaichoFile = (file: File) => {
     setLoadingDaicho(true);
     const reader = new FileReader();
@@ -366,14 +414,20 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         }
 
         const currentAppData = db.loadData();
-        const result = processDaicho(workbook, [...currentAppData.employees]);
+        const result = processDaicho(workbook, [...currentAppData.employees], syncStatus.includeResigned);
 
         currentAppData.employees = result.employees;
         db.saveData(currentAppData);
 
         setSyncStatus(prev => ({
           ...prev,
-          daicho: { synced: true, count: result.count, lastSync: new Date().toISOString() }
+          daicho: {
+            synced: true,
+            count: result.count,
+            activeCount: result.activeCount,
+            resignedCount: result.resignedCount,
+            lastSync: new Date().toISOString()
+          }
         }));
 
         onSyncComplete();
@@ -404,14 +458,20 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         }
 
         const currentAppData = db.loadData();
-        const result = processYukyu(workbook, [...currentAppData.employees]);
+        const result = processYukyu(workbook, [...currentAppData.employees], syncStatus.includeResigned);
 
         currentAppData.employees = result.employees;
         db.saveData(currentAppData);
 
         setSyncStatus(prev => ({
           ...prev,
-          yukyu: { synced: true, count: result.count, lastSync: new Date().toISOString() }
+          yukyu: {
+            synced: true,
+            count: result.count,
+            activeCount: result.activeCount,
+            resignedCount: result.resignedCount,
+            lastSync: new Date().toISOString()
+          }
         }));
 
         onSyncComplete();
@@ -427,10 +487,11 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
 
   const resetSync = () => {
     if (confirm('同期状態をリセットしますか？\n（データは削除されません）')) {
-      setSyncStatus({
-        daicho: { synced: false, count: 0, lastSync: null },
-        yukyu: { synced: false, count: 0, lastSync: null }
-      });
+      setSyncStatus(prev => ({
+        daicho: { synced: false, count: 0, activeCount: 0, resignedCount: 0, lastSync: null },
+        yukyu: { synced: false, count: 0, activeCount: 0, resignedCount: 0, lastSync: null },
+        includeResigned: prev.includeResigned
+      }));
     }
   };
 
@@ -465,6 +526,29 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         )}
       </header>
 
+      {/* Filter Toggle */}
+      <div className="flex justify-center">
+        <button
+          onClick={toggleIncludeResigned}
+          className={`flex items-center gap-3 px-6 py-3 rounded-lg border transition-all ${
+            syncStatus.includeResigned
+              ? 'border-red-500/50 bg-red-500/10 text-red-400'
+              : 'border-white/10 bg-white/5 text-white/60 hover:border-white/30'
+          }`}
+        >
+          <div className={`w-10 h-5 rounded-full relative transition-colors ${
+            syncStatus.includeResigned ? 'bg-red-500' : 'bg-white/20'
+          }`}>
+            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+              syncStatus.includeResigned ? 'translate-x-5' : 'translate-x-0.5'
+            }`} />
+          </div>
+          <span className="text-sm font-bold">
+            {syncStatus.includeResigned ? '退社者を含む' : '在職中のみ'}
+          </span>
+        </button>
+      </div>
+
       {/* Two Dropzones */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Dropzone
@@ -476,6 +560,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
           syncStatus={syncStatus.daicho}
           onProcess={processDaichoFile}
           loading={loadingDaicho}
+          includeResigned={syncStatus.includeResigned}
         />
         <Dropzone
           type="yukyu"
@@ -486,6 +571,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
           syncStatus={syncStatus.yukyu}
           onProcess={processYukyuFile}
           loading={loadingYukyu}
+          includeResigned={syncStatus.includeResigned}
         />
       </div>
 

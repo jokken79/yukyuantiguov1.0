@@ -20,6 +20,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     // Check localStorage for saved preference
     const saved = localStorage.getItem('uns-yukyu-theme');
     if (saved === 'light' || saved === 'dark') return saved;
+    // Check system preference
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+        return 'light';
+      }
+    }
     // Default to dark (original theme)
     return 'dark';
   });

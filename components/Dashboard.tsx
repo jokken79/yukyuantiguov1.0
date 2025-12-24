@@ -253,6 +253,103 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
           </div>
         </div>
 
+        {/* Legal Risk Alert Panel - Detailed List */}
+        {legalAlerts.length > 0 && (
+          <div className={`lg:col-span-12 p-8 border-2 border-red-500/30 bg-red-500/5 relative overflow-hidden ${isDark ? '' : 'shadow-lg'}`}>
+            <div className="absolute top-0 right-0 w-40 h-40 bg-red-500/10 blur-3xl"></div>
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">⚠️</span>
+                </div>
+                <div>
+                  <h3 className={`text-2xl font-black italic tracking-tighter text-red-500`}>
+                    法的リスク対象者一覧
+                  </h3>
+                  <p className={`text-xs ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
+                    労働基準法39条: 10日以上付与された従業員は年5日以上の取得が義務
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-4xl font-black text-red-500">{legalAlerts.length}</div>
+                <p className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-500'}`}>名が未達成</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+              {legalAlerts
+                .sort((a, b) => a.usedTotal - b.usedTotal) // 消化が少ない順
+                .map((emp, i) => {
+                  const daysNeeded = 5 - emp.usedTotal;
+                  const urgencyClass = emp.usedTotal === 0
+                    ? 'border-red-500 bg-red-500/10'
+                    : emp.usedTotal <= 2
+                      ? 'border-orange-500 bg-orange-500/10'
+                      : 'border-yellow-500 bg-yellow-500/10';
+
+                  return (
+                    <div
+                      key={emp.id}
+                      className={`p-4 rounded-xl border-2 ${urgencyClass} transition-all hover:scale-[1.02]`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm font-black truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                            {emp.name}
+                          </p>
+                          <p className={`text-[10px] truncate ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+                            {emp.client} / №{emp.id}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className={`text-lg font-black ${
+                            emp.usedTotal === 0 ? 'text-red-500' : emp.usedTotal <= 2 ? 'text-orange-500' : 'text-yellow-500'
+                          }`}>
+                            {emp.usedTotal}<span className="text-xs">日</span>
+                          </div>
+                          <p className={`text-[9px] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>消化済</p>
+                        </div>
+                      </div>
+                      <div className={`mt-2 pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className={isDark ? 'text-white/50' : 'text-slate-500'}>
+                            付与: {emp.grantedTotal}日 / 残高: {emp.balance}日
+                          </span>
+                          <span className={`font-black px-2 py-0.5 rounded ${
+                            emp.usedTotal === 0
+                              ? 'bg-red-500/20 text-red-400'
+                              : emp.usedTotal <= 2
+                                ? 'bg-orange-500/20 text-orange-400'
+                                : 'bg-yellow-500/20 text-yellow-400'
+                          }`}>
+                            あと{daysNeeded}日必要
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            <div className={`mt-4 pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} flex flex-wrap gap-4 text-[10px]`}>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-red-500"></div>
+                <span className={isDark ? 'text-white/50' : 'text-slate-500'}>0日消化（緊急）</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-orange-500"></div>
+                <span className={isDark ? 'text-white/50' : 'text-slate-500'}>1-2日消化</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-yellow-500"></div>
+                <span className={isDark ? 'text-white/50' : 'text-slate-500'}>3-4日消化</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Final Row: Scatter Efficiency (付与日数 vs 消化日数) */}
         <div className={`lg:col-span-12 p-12 border ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
           <h3 className={`text-3xl font-black italic tracking-tighter mb-12 flex items-center gap-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>

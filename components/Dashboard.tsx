@@ -19,12 +19,12 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const [loadingAI, setLoadingAI] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
 
-  // 1. 月別使用推移データの生成
+  // 1. 月別使用推移データの生成 (承認済みのみ)
   const monthlyTrendData = useMemo(() => {
     const months = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
     const counts = new Array(12).fill(0);
     data.records.forEach(r => {
-      if (r.type === 'paid') {
+      if (r.type === 'paid' && r.status === 'approved') {
         const m = new Date(r.date).getMonth();
         counts[m]++;
       }
@@ -32,12 +32,12 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     return months.map((name, i) => ({ name, value: counts[i] }));
   }, [data.records]);
 
-  // 2. 曜日別取得パターンの生成
+  // 2. 曜日別取得パターンの生成 (承認済みのみ)
   const dayOfWeekData = useMemo(() => {
     const days = ["日", "月", "火", "水", "木", "金", "土"];
     const counts = new Array(7).fill(0);
     data.records.forEach(r => {
-      if (r.type === 'paid') {
+      if (r.type === 'paid' && r.status === 'approved') {
         const d = new Date(r.date).getDay();
         counts[d]++;
       }
@@ -45,26 +45,31 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     return days.map((name, i) => ({ name, value: counts[i] })).filter((_, i) => i !== 0 && i !== 6); // 平日のみ
   }, [data.records]);
 
-  // 3. 派遣先別の分布
+  // Filter active employees for accurate analytics
+  const activeEmployees = useMemo(() => {
+    return data.employees.filter(e => e.status === '在職中');
+  }, [data.employees]);
+
+  // 3. 派遣先別の分布 (在職中のみ)
   const clientData = useMemo(() => {
     const clients: Record<string, number> = {};
-    data.employees.forEach(e => {
+    activeEmployees.forEach(e => {
       clients[e.client] = (clients[e.client] || 0) + 1;
     });
     return Object.entries(clients).map(([name, value]) => ({ name, value }));
-  }, [data.employees]);
+  }, [activeEmployees]);
 
-  // 4. トップユーザー
+  // 4. トップユーザー (在職中のみ)
   const topUsers = useMemo(() => {
-    return [...data.employees]
+    return [...activeEmployees]
       .sort((a, b) => b.usedTotal - a.usedTotal)
       .slice(0, 10);
-  }, [data.employees]);
+  }, [activeEmployees]);
 
-  // 5. 法的リスクアラート
+  // 5. 法的リスクアラート (在職中で10日以上付与かつ5日未満消化)
   const legalAlerts = useMemo(() => {
-    return data.employees.filter(e => e.status === '在職中' && e.grantedTotal >= 10 && e.usedTotal < 5);
-  }, [data.employees]);
+    return activeEmployees.filter(e => e.grantedTotal >= 10 && e.usedTotal < 5);
+  }, [activeEmployees]);
 
   const COLORS = ['#00e5ff', '#ff004c', '#7000ff', '#eab308', '#22c55e', '#ec4899'];
 
@@ -79,10 +84,10 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   }, [data]);
 
   const kpis = [
-    { label: '有給対象', value: data.employees.length, suffix: '名', color: 'blue' },
+    { label: '有給対象', value: activeEmployees.length, suffix: '名', color: 'blue' },
     { label: '法的リスク', value: legalAlerts.length, suffix: '名', color: 'red' },
-    { label: '消化合計', value: data.employees.reduce((s, e) => s + e.usedTotal, 0), suffix: '日', color: 'white' },
-    { label: '遵守率', value: Math.round(((data.employees.length - legalAlerts.length) / (data.employees.length || 1)) * 100), suffix: '%', color: 'blue' },
+    { label: '消化合計', value: activeEmployees.reduce((s, e) => s + e.usedTotal, 0), suffix: '日', color: 'white' },
+    { label: '遵守率', value: Math.round(((activeEmployees.length - legalAlerts.length) / (activeEmployees.length || 1)) * 100), suffix: '%', color: 'blue' },
   ];
 
   // Theme-aware colors for charts
@@ -261,8 +266,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                 <YAxis type="number" dataKey="usedTotal" name="消化日数" unit="日" stroke={chartColors.axis} fontSize={11} fontWeight="900" />
                 <ZAxis type="number" range={[100, 1000]} />
                 <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter name="従業員" data={data.employees} fill="#eab308">
-                  {data.employees.map((entry, index) => (
+                <Scatter name="従業員" data={activeEmployees} fill="#eab308">
+                  {activeEmployees.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.usedTotal < 5 && entry.grantedTotal >= 10 ? '#ff004c' : '#eab308'} />
                   ))}
                 </Scatter>

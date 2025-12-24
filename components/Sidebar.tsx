@@ -32,9 +32,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             </div>
             
             <div className="mt-8 flex flex-col items-center">
-              <div className="text-[10px] font-black tracking-[0.8em] text-white/40 uppercase mb-1">High Performance</div>
+              <div className="text-[10px] font-black tracking-[0.5em] text-white/40 mb-1">ユニバーサル企画</div>
               <div className="h-0.5 w-full bg-gradient-to-r from-blue-500 via-white to-red-500"></div>
-              <div className="text-lg font-black italic tracking-tighter mt-2 text-white">YUKYU-PRO V1.0</div>
+              <div className="text-lg font-black italic tracking-tighter mt-2 text-white">有給PRO V1.0</div>
             </div>
           </div>
         </div>
@@ -67,11 +67,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 relative overflow-hidden group">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-1 h-6 bg-red-600"></div>
-            <span className="text-[10px] font-black text-white/40 tracking-[0.2em]">OPERATIONAL STATUS</span>
+            <span className="text-[10px] font-black text-white/40 tracking-[0.2em]">システム状態</span>
           </div>
           <div className="text-xs font-black text-white italic tracking-tighter">
-            SYSTEM ENGINE: ARMED<br/>
-            AI PROTOCOL: ONLINE
+            エンジン: 稼働中<br/>
+            AI分析: オンライン
           </div>
         </div>
       </div>

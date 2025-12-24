@@ -85,32 +85,32 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   return (
     <div className="p-12 space-y-12 animate-fadeIn max-w-[1800px] mx-auto relative pb-32">
-      <div className="absolute top-0 right-0 text-[18vw] font-black text-white/[0.01] select-none pointer-events-none italic tracking-tighter">ANALYTICS</div>
+      <div className="absolute top-0 right-0 text-[18vw] font-black text-white/[0.01] select-none pointer-events-none italic tracking-tighter">分析</div>
 
       <header className="flex flex-col md:flex-row justify-between items-end gap-8 relative z-10 border-b border-white/5 pb-12">
         <div className="space-y-4">
           <div className="flex items-center gap-6">
             <div className={`h-14 w-2 ${legalAlerts.length > 0 ? 'bg-red-600 shadow-[0_0_20px_#ff004c]' : 'bg-blue-500 shadow-[0_0_20px_#00e5ff]'} animate-pulse`}></div>
-            <h2 className="text-7xl font-black italic tracking-tighter aggressive-text underline decoration-blue-500/30 decoration-8 underline-offset-8">DATA INTELLIGENCE</h2>
+            <h2 className="text-7xl font-black italic tracking-tighter aggressive-text underline decoration-blue-500/30 decoration-8 underline-offset-8">データ分析</h2>
           </div>
-          <div className="flex items-center gap-4 text-white/30 font-black tracking-[0.4em] ml-8 uppercase text-sm">
-             <span>Advanced Analysis Mode</span>
+          <div className="flex items-center gap-4 text-white/30 font-black tracking-[0.4em] ml-8 text-sm">
+             <span>詳細分析モード</span>
              <span className="text-blue-500">●</span>
-             <span>System Status: 100% Operational</span>
+             <span>システム状態: 正常稼働中</span>
           </div>
         </div>
-        
+
         <div className="flex gap-4">
-          <button onClick={() => exportEmployeesToCSV(data.employees)} className="px-10 py-5 bg-black border border-white/10 hover:border-white/40 transition-all text-xs font-black tracking-widest text-white italic">DB.DUMP_CSV</button>
-          <button 
+          <button onClick={() => exportEmployeesToCSV(data.employees)} className="px-10 py-5 bg-black border border-white/10 hover:border-white/40 transition-all text-xs font-black tracking-widest text-white">CSV出力</button>
+          <button
             onClick={async () => {
               setExportingPDF(true);
-              await exportToPDF('dashboard-full-view', `analytical_report_${Date.now()}.pdf`);
+              await exportToPDF('dashboard-full-view', `分析レポート_${Date.now()}.pdf`);
               setExportingPDF(false);
             }}
-            className="px-10 py-5 bg-white text-black hover:scale-105 transition-all text-xs font-black tracking-widest italic shadow-[0_0_40px_rgba(255,255,255,0.2)]"
+            className="px-10 py-5 bg-white text-black hover:scale-105 transition-all text-xs font-black tracking-widest shadow-[0_0_40px_rgba(255,255,255,0.2)]"
           >
-            {exportingPDF ? 'PROCESSING...' : 'MASTER_REPORT.PDF'}
+            {exportingPDF ? '処理中...' : 'PDF出力'}
           </button>
         </div>
       </header>
@@ -132,7 +132,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         
         {/* Row 1 Left: Monthly Trend (Big Area Chart) */}
         <div className="lg:col-span-8 bg-[#0a0a0a] p-12 border border-white/5 relative group overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 text-white/5 font-black text-6xl italic italic select-none">TREND</div>
+          <div className="absolute top-0 right-0 p-8 text-white/5 font-black text-6xl italic select-none">推移</div>
           <h3 className="text-3xl font-black italic tracking-tighter mb-12 flex items-center gap-4">
             <span className="w-8 h-1 bg-blue-500"></span> 使用日数の月別推移
           </h3>

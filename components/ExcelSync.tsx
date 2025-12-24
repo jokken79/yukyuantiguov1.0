@@ -141,25 +141,25 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
 
   return (
     <div className="p-12 max-w-[1200px] mx-auto space-y-12 animate-fadeIn relative pb-32">
-      <div className="absolute top-0 right-0 text-[18vw] font-black text-white/[0.01] select-none pointer-events-none italic tracking-tighter uppercase">SYNC</div>
+      <div className="absolute top-0 right-0 text-[18vw] font-black text-white/[0.01] select-none pointer-events-none italic tracking-tighter">同期</div>
 
       <header className="flex flex-col md:flex-row justify-between items-end gap-8 relative z-10 border-b border-white/5 pb-12">
         <div className="space-y-4">
           <div className="flex items-center gap-6">
             <div className="h-14 w-2 bg-blue-500 shadow-[0_0_20px_#00e5ff] animate-pulse"></div>
-            <h2 className="text-7xl font-black italic tracking-tighter aggressive-text">UNIVERSAL SYNC</h2>
+            <h2 className="text-7xl font-black italic tracking-tighter aggressive-text">データ同期</h2>
           </div>
-          <div className="flex items-center gap-4 text-white/30 font-black tracking-[0.4em] ml-8 uppercase text-sm">
-             <span>Cross-Extension Support</span>
+          <div className="flex items-center gap-4 text-white/30 font-black tracking-[0.4em] ml-8 text-sm">
+             <span>エクセル対応</span>
              <span className="text-blue-500">●</span>
              <span>.xlsx / .xlsm / .xls</span>
           </div>
         </div>
-        
+
         {stats && (
           <div className={`text-right px-8 py-4 border animate-fadeIn ${stats.color.split(' ')[1]}`}>
-            <p className={`text-[10px] font-black uppercase tracking-[0.3em] mb-1 ${stats.color.split(' ')[0]}`}>DETECTED: {stats.type}</p>
-            <p className="text-2xl font-black italic">{stats.count} <span className="text-xs">ENTRIES SYNCED</span></p>
+            <p className={`text-[10px] font-black tracking-[0.3em] mb-1 ${stats.color.split(' ')[0]}`}>検出: {stats.type}</p>
+            <p className="text-2xl font-black italic">{stats.count} <span className="text-xs">件同期完了</span></p>
           </div>
         )}
       </header>
@@ -178,11 +178,11 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
           className="absolute inset-0 opacity-0 cursor-pointer z-20"
           onChange={(e) => { const file = e.target.files?.[0]; if (file) processFile(file); }}
         />
-        
+
         {loading ? (
           <div className="flex flex-col items-center py-10 space-y-8">
             <div className="w-24 h-24 border-t-4 border-blue-500 rounded-full animate-spin"></div>
-            <p className="text-2xl font-black italic tracking-tighter aggressive-text animate-pulse">SMART_DETECT RUNNING...</p>
+            <p className="text-2xl font-black italic tracking-tighter aggressive-text animate-pulse">データ解析中...</p>
           </div>
         ) : (
           <div className="space-y-10">
@@ -194,14 +194,14 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
                <div className="text-7xl font-black italic tracking-tighter">XLS</div>
             </div>
             <div>
-              <h3 className="text-4xl font-black italic tracking-tighter mb-4 uppercase">Drag any workbook here</h3>
-              <p className="text-white/30 font-bold uppercase tracking-widest text-xs">
-                AIが自動的に「台帳」か「管理表」かを判別し、データベースを構築します
+              <h3 className="text-4xl font-black italic tracking-tighter mb-4">ここにファイルをドラッグ</h3>
+              <p className="text-white/30 font-bold tracking-widest text-xs">
+                社員台帳からデータを自動的に取り込み、データベースを構築します
               </p>
             </div>
             <div className="pt-8">
               <button className="px-16 py-6 bg-white text-black font-black italic tracking-widest text-xs hover:scale-105 transition-all shadow-[0_0_50px_rgba(255,255,255,0.1)]">
-                SELECT_SOURCE_FILE
+                ファイルを選択
               </button>
             </div>
           </div>
@@ -210,19 +210,19 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
         <div className="bg-[#0a0a0a] p-10 border border-white/5 space-y-4 group hover:border-blue-500/50 transition-colors">
-          <div className="text-blue-500 font-black text-xl italic tracking-tighter">01. SMART_IDENTIFY</div>
+          <div className="text-blue-500 font-black text-xl italic tracking-tighter">01. 自動識別</div>
           <p className="text-xs text-white/40 leading-relaxed font-bold">
             ファイルの中身を瞬時に解析。有給の計算式が含まれていれば「管理データ」、名簿のみであれば「台帳」として最適に振り分けます。
           </p>
         </div>
         <div className="bg-[#0a0a0a] p-10 border border-white/5 space-y-4 group hover:border-red-600/50 transition-colors">
-          <div className="text-red-600 font-black text-xl italic tracking-tighter">02. MASTER_MERGE</div>
+          <div className="text-red-600 font-black text-xl italic tracking-tighter">02. データ統合</div>
           <p className="text-xs text-white/40 leading-relaxed font-bold">
             異なるファイルからでも「社員番号」を基にパズルのようにデータを結合。情報の断片化を防ぎます。
           </p>
         </div>
         <div className="bg-[#0a0a0a] p-10 border border-white/5 space-y-4 group hover:border-white/50 transition-colors">
-          <div className="text-white font-black text-xl italic tracking-tighter">03. LEGACY_READY</div>
+          <div className="text-white font-black text-xl italic tracking-tighter">03. 旧形式対応</div>
           <p className="text-xs text-white/40 leading-relaxed font-bold">
             マクロ入りのXLSMや古いXLSにも完全対応。工場の現場で10年以上使われているファイルもそのまま活用可能です。
           </p>

@@ -1,0 +1,7 @@
+{
+  "name": "Yukyu Pro - Advanced Leave Management",
+  "description": "A world-class paid leave (有給休暇) management dashboard with Excel synchronization, AI insights via Gemini, and local persistence.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

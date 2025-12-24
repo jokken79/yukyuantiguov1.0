@@ -290,6 +290,22 @@ const processYukyu = (
   return { employees: existingEmployees, count, activeCount, resignedCount };
 };
 
+// Progress state interface
+interface ProgressState {
+  stage: 'idle' | 'reading' | 'parsing' | 'processing' | 'saving' | 'complete';
+  percent: number;
+  message: string;
+}
+
+const PROGRESS_STAGES = {
+  idle: { percent: 0, message: '' },
+  reading: { percent: 20, message: 'ファイル読み込み中...' },
+  parsing: { percent: 40, message: 'Excel解析中...' },
+  processing: { percent: 70, message: 'データ処理中...' },
+  saving: { percent: 90, message: '保存中...' },
+  complete: { percent: 100, message: '完了!' }
+};
+
 // Componente Dropzone individual
 interface DropzoneProps {
   type: 'daicho' | 'yukyu';
@@ -300,16 +316,21 @@ interface DropzoneProps {
   syncStatus: { synced: boolean; count: number; activeCount: number; resignedCount: number; lastSync: string | null };
   onProcess: (file: File) => void;
   loading: boolean;
+  progress: ProgressState;
   includeResigned: boolean;
   isDark: boolean;
 }
 
-const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color, syncStatus, onProcess, loading, includeResigned, isDark }) => {
+const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color, syncStatus, onProcess, loading, progress, includeResigned, isDark }) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const bgColor = isDragging ? `bg-${color}-500/5` : isDark ? 'bg-[#0a0a0a]' : 'bg-white';
   const borderIdle = isDark ? 'border-white/10' : 'border-slate-200';
   const hoverBorder = isDark ? 'hover:border-white/20' : 'hover:border-slate-400';
+
+  // Color classes for progress bar
+  const progressColorClass = color === 'green' ? 'bg-green-500' : 'bg-blue-500';
+  const progressBgClass = isDark ? 'bg-white/10' : 'bg-slate-200';
 
   return (
     <div
@@ -325,12 +346,56 @@ const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color,
         accept=".xlsx,.xls,.xlsm"
         className="absolute inset-0 opacity-0 cursor-pointer z-20"
         onChange={(e) => { const file = e.target.files?.[0]; if (file) onProcess(file); }}
+        disabled={loading}
       />
 
       {loading ? (
-        <div className="flex flex-col items-center py-8 space-y-4">
-          <div className={`w-16 h-16 border-t-4 border-${color}-500 rounded-full animate-spin`}></div>
-          <p className={`text-lg font-black italic tracking-tighter animate-pulse ${isDark ? 'text-white' : 'text-slate-800'}`}>解析中...</p>
+        <div className="flex flex-col items-center py-6 space-y-4">
+          {/* Progress Bar */}
+          <div className={`w-full h-3 rounded-full overflow-hidden ${progressBgClass}`}>
+            <div
+              className={`h-full ${progressColorClass} transition-all duration-500 ease-out`}
+              style={{ width: `${progress.percent}%` }}
+            />
+          </div>
+
+          {/* Progress Percentage */}
+          <div className="flex items-center justify-between w-full">
+            <span className={`text-2xl font-black ${color === 'green' ? 'text-green-500' : 'text-blue-500'}`}>
+              {progress.percent}%
+            </span>
+            <span className={`text-sm font-bold animate-pulse ${isDark ? 'text-white/60' : 'text-slate-600'}`}>
+              {progress.message}
+            </span>
+          </div>
+
+          {/* Stage Indicators */}
+          <div className="flex justify-center gap-2 w-full">
+            {(['reading', 'parsing', 'processing', 'saving'] as const).map((stage, idx) => {
+              const isActive = progress.stage === stage;
+              const isComplete = PROGRESS_STAGES[progress.stage].percent > PROGRESS_STAGES[stage].percent;
+              return (
+                <div
+                  key={stage}
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold transition-all ${
+                    isActive
+                      ? `${color === 'green' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'} animate-pulse`
+                      : isComplete
+                        ? `${isDark ? 'bg-white/10 text-white/60' : 'bg-slate-100 text-slate-500'}`
+                        : `${isDark ? 'bg-white/5 text-white/20' : 'bg-slate-50 text-slate-300'}`
+                  }`}
+                >
+                  {isComplete ? '✓' : isActive ? '●' : '○'}
+                  <span className="hidden sm:inline">
+                    {stage === 'reading' && '読込'}
+                    {stage === 'parsing' && '解析'}
+                    {stage === 'processing' && '処理'}
+                    {stage === 'saving' && '保存'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -390,6 +455,8 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(loadSyncStatus);
   const [loadingDaicho, setLoadingDaicho] = useState(false);
   const [loadingYukyu, setLoadingYukyu] = useState(false);
+  const [progressDaicho, setProgressDaicho] = useState<ProgressState>({ stage: 'idle', percent: 0, message: '' });
+  const [progressYukyu, setProgressYukyu] = useState<ProgressState>({ stage: 'idle', percent: 0, message: '' });
 
   useEffect(() => {
     saveSyncStatus(syncStatus);
@@ -402,12 +469,27 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
     }));
   };
 
+  const setProgress = (setter: React.Dispatch<React.SetStateAction<ProgressState>>, stage: ProgressState['stage']) => {
+    setter({ stage, ...PROGRESS_STAGES[stage] });
+  };
+
   const processDaichoFile = (file: File) => {
     setLoadingDaicho(true);
+    setProgress(setProgressDaicho, 'reading');
     const reader = new FileReader();
 
-    reader.onload = (e) => {
+    reader.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const readPercent = Math.round((e.loaded / e.total) * 20);
+        setProgressDaicho({ stage: 'reading', percent: readPercent, message: PROGRESS_STAGES.reading.message });
+      }
+    };
+
+    reader.onload = async (e) => {
       try {
+        setProgress(setProgressDaicho, 'parsing');
+        await new Promise(r => setTimeout(r, 100)); // Allow UI to update
+
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
 
@@ -415,14 +497,24 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         if (!hasDaichoSheets) {
           alert('社員台帳ファイルではありません。\n必要なシート: DBGenzaiX, DBUkeoiX, DBStaffX');
           setLoadingDaicho(false);
+          setProgress(setProgressDaicho, 'idle');
           return;
         }
+
+        setProgress(setProgressDaicho, 'processing');
+        await new Promise(r => setTimeout(r, 100));
 
         const currentAppData = db.loadData();
         const result = processDaicho(workbook, [...currentAppData.employees], syncStatus.includeResigned);
 
+        setProgress(setProgressDaicho, 'saving');
+        await new Promise(r => setTimeout(r, 100));
+
         currentAppData.employees = result.employees;
         db.saveData(currentAppData);
+
+        setProgress(setProgressDaicho, 'complete');
+        await new Promise(r => setTimeout(r, 500));
 
         setSyncStatus(prev => ({
           ...prev,
@@ -441,6 +533,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         alert('社員台帳の解析に失敗しました。');
       } finally {
         setLoadingDaicho(false);
+        setProgress(setProgressDaicho, 'idle');
       }
     };
     reader.readAsArrayBuffer(file);
@@ -448,10 +541,21 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
 
   const processYukyuFile = (file: File) => {
     setLoadingYukyu(true);
+    setProgress(setProgressYukyu, 'reading');
     const reader = new FileReader();
 
-    reader.onload = (e) => {
+    reader.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const readPercent = Math.round((e.loaded / e.total) * 20);
+        setProgressYukyu({ stage: 'reading', percent: readPercent, message: PROGRESS_STAGES.reading.message });
+      }
+    };
+
+    reader.onload = async (e) => {
       try {
+        setProgress(setProgressYukyu, 'parsing');
+        await new Promise(r => setTimeout(r, 100));
+
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
 
@@ -459,14 +563,24 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         if (!hasYukyuSheets) {
           alert('有給休暇管理ファイルではありません。\n必要なシート: 作業者データ　有給, 請負');
           setLoadingYukyu(false);
+          setProgress(setProgressYukyu, 'idle');
           return;
         }
+
+        setProgress(setProgressYukyu, 'processing');
+        await new Promise(r => setTimeout(r, 100));
 
         const currentAppData = db.loadData();
         const result = processYukyu(workbook, [...currentAppData.employees], syncStatus.includeResigned);
 
+        setProgress(setProgressYukyu, 'saving');
+        await new Promise(r => setTimeout(r, 100));
+
         currentAppData.employees = result.employees;
         db.saveData(currentAppData);
+
+        setProgress(setProgressYukyu, 'complete');
+        await new Promise(r => setTimeout(r, 500));
 
         setSyncStatus(prev => ({
           ...prev,
@@ -485,6 +599,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         alert('有給休暇管理の解析に失敗しました。');
       } finally {
         setLoadingYukyu(false);
+        setProgress(setProgressYukyu, 'idle');
       }
     };
     reader.readAsArrayBuffer(file);
@@ -565,6 +680,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
           syncStatus={syncStatus.daicho}
           onProcess={processDaichoFile}
           loading={loadingDaicho}
+          progress={progressDaicho}
           includeResigned={syncStatus.includeResigned}
           isDark={isDark}
         />
@@ -577,6 +693,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
           syncStatus={syncStatus.yukyu}
           onProcess={processYukyuFile}
           loading={loadingYukyu}
+          progress={progressYukyu}
           includeResigned={syncStatus.includeResigned}
           isDark={isDark}
         />

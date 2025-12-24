@@ -216,12 +216,12 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8 animate-fadeIn">
-      <div className="mb-4">
-        <h2 className={`text-3xl font-extrabold ${isDark ? 'text-white' : 'text-slate-800'}`}>有給休暇申請</h2>
-        <p className={`mt-2 ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8 animate-fadeIn">
+      <div className="mb-2 md:mb-4">
+        <h2 className={`text-2xl md:text-3xl font-extrabold ${isDark ? 'text-white' : 'text-slate-800'}`}>有給休暇申請</h2>
+        <p className={`mt-1 md:mt-2 text-sm ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
           工場を選択して従業員を絞り込み、申請を行います。
-          <br />
+          <br className="hidden md:block" />
           <span className="text-xs italic text-indigo-500 opacity-80">
             ※当社の規定（新しい付与分から優先消化）に基づき計算されます。
           </span>
@@ -268,6 +268,47 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
               </div>
             </div>
 
+            {/* Prominent Balance Indicator - shown when employee is selected */}
+            {selectedEmployee && formData.type === 'paid' && (
+              <div className={`p-4 rounded-2xl flex items-center justify-between ${
+                selectedEmployee.balance <= 0
+                  ? 'bg-red-500/10 border-2 border-red-500/30'
+                  : selectedEmployee.balance <= 3
+                    ? 'bg-orange-500/10 border-2 border-orange-500/30'
+                    : 'bg-green-500/10 border-2 border-green-500/30'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-black ${
+                    selectedEmployee.balance <= 0
+                      ? 'bg-red-500/20 text-red-500'
+                      : selectedEmployee.balance <= 3
+                        ? 'bg-orange-500/20 text-orange-500'
+                        : 'bg-green-500/20 text-green-500'
+                  }`}>
+                    {selectedEmployee.balance}
+                  </div>
+                  <div>
+                    <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                      有給残高
+                    </p>
+                    <p className={`text-xs ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
+                      {selectedEmployee.balance <= 0
+                        ? '残高なし - 申請不可'
+                        : selectedEmployee.balance <= 3
+                          ? '残りわずか'
+                          : '申請可能'}
+                    </p>
+                  </div>
+                </div>
+                {selectedEmployee.balance > 0 && (
+                  <div className={`text-right text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
+                    <p>付与: {selectedEmployee.grantedTotal}日</p>
+                    <p>消化: {selectedEmployee.usedTotal}日</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>取得予定日</label>
@@ -278,6 +319,12 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                   className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 />
+                {/* Warning if date already taken */}
+                {selectedEmployee && allLeaveHistory.includes(formData.date) && (
+                  <p className="text-xs text-orange-500 font-medium flex items-center gap-1 mt-1">
+                    <span>⚠️</span> この日付は既に取得済みです
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -303,6 +350,70 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                 className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none h-24 resize-none ${isDark ? 'bg-white/5 border border-white/10 text-white placeholder:text-white/30' : 'bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
               />
             </div>
+
+            {/* Mini Calendar - shows current and next month with taken dates */}
+            {selectedEmployee && allLeaveHistory.length > 0 && (
+              <div className={`p-4 rounded-2xl ${isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-100'}`}>
+                <p className={`text-xs font-semibold mb-3 ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
+                  📅 取得済み日付（直近2ヶ月）
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  {[0, 1].map(monthOffset => {
+                    const targetDate = new Date();
+                    targetDate.setMonth(targetDate.getMonth() + monthOffset);
+                    const year = targetDate.getFullYear();
+                    const month = targetDate.getMonth();
+                    const firstDay = new Date(year, month, 1).getDay();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                    // Get dates taken in this month
+                    const takenInMonth = allLeaveHistory.filter(d => {
+                      const date = new Date(d);
+                      return date.getFullYear() === year && date.getMonth() === month;
+                    }).map(d => new Date(d).getDate());
+
+                    return (
+                      <div key={monthOffset} className="space-y-1">
+                        <p className={`text-[10px] font-bold text-center ${isDark ? 'text-white/80' : 'text-slate-700'}`}>
+                          {targetDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short' })}
+                        </p>
+                        <div className="grid grid-cols-7 gap-0.5 text-[9px]">
+                          {['日', '月', '火', '水', '木', '金', '土'].map(d => (
+                            <div key={d} className={`text-center py-0.5 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>{d}</div>
+                          ))}
+                          {Array.from({ length: firstDay }).map((_, i) => (
+                            <div key={`empty-${i}`} />
+                          ))}
+                          {Array.from({ length: daysInMonth }).map((_, i) => {
+                            const day = i + 1;
+                            const isTaken = takenInMonth.includes(day);
+                            const isToday = monthOffset === 0 && day === new Date().getDate();
+                            return (
+                              <div
+                                key={day}
+                                className={`text-center py-0.5 rounded ${
+                                  isTaken
+                                    ? 'bg-pink-500 text-white font-bold'
+                                    : isToday
+                                      ? 'bg-indigo-500/20 text-indigo-500 font-bold'
+                                      : isDark ? 'text-white/50' : 'text-slate-500'
+                                }`}
+                              >
+                                {day}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className={`text-[9px] mt-2 text-center ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                  <span className="inline-block w-2 h-2 bg-pink-500 rounded mr-1"></span>取得済み
+                  <span className="inline-block w-2 h-2 bg-indigo-500/30 rounded ml-3 mr-1"></span>今日
+                </p>
+              </div>
+            )}
 
             <button
               type="submit"

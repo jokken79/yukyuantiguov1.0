@@ -8,6 +8,7 @@ import EmployeeList from './components/EmployeeList';
 import LeaveRequest from './components/LeaveRequest';
 import AccountingReports from './components/AccountingReports';
 import ApplicationManagement from './components/ApplicationManagement';
+import { DashboardSkeleton, EmployeeListSkeleton, ApplicationSkeleton, TableSkeleton } from './components/Skeleton';
 import { db } from './services/db';
 import { AppData } from './types';
 
@@ -16,12 +17,51 @@ const AppContent: React.FC = () => {
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [appData, setAppData] = useState<AppData>(db.loadData());
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initial load delay for nice skeleton animation
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show brief loading when switching tabs
+  const handleTabChange = (tab: string) => {
+    if (tab !== activeTab) {
+      setIsLoading(true);
+      setActiveTab(tab);
+      setTimeout(() => setIsLoading(false), 300);
+    }
+  };
 
   const refreshData = () => {
     setAppData(db.loadData());
   };
 
+  const renderSkeleton = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardSkeleton />;
+      case 'employees':
+        return <EmployeeListSkeleton />;
+      case 'applications':
+        return <ApplicationSkeleton />;
+      case 'reports':
+        return (
+          <div className="p-8 space-y-8">
+            <TableSkeleton rows={8} columns={5} />
+          </div>
+        );
+      default:
+        return <DashboardSkeleton />;
+    }
+  };
+
   const renderContent = () => {
+    if (isLoading) {
+      return renderSkeleton();
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard data={appData} />;
@@ -52,7 +92,7 @@ const AppContent: React.FC = () => {
       {/* Noise Texture Overlay for that premium analog feel */}
       <div className={`fixed inset-0 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] z-50 ${isDark ? 'opacity-[0.02]' : 'opacity-[0.01]'}`}></div>
 
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
 
       <main className={`flex-1 overflow-y-auto relative z-10 custom-scrollbar ${isDark ? '' : 'bg-slate-50'}`}>
         <div className="min-h-screen">

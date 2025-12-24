@@ -122,6 +122,25 @@ export const db = {
     return approvedCount;
   },
 
+  // Reject multiple records at once
+  rejectMultiple: (recordIds: string[], reason?: string) => {
+    const data = db.loadData();
+    let rejectedCount = 0;
+
+    recordIds.forEach(recordId => {
+      const record = data.records.find(r => r.id === recordId);
+      if (!record || record.status !== 'pending') return;
+
+      record.status = 'rejected';
+      record.approvedAt = new Date().toISOString();
+      if (reason) record.note = (record.note ? record.note + ' | ' : '') + `却下理由: ${reason}`;
+      rejectedCount++;
+    });
+
+    db.saveData(data);
+    return rejectedCount;
+  },
+
   // Delete a record (only pending or rejected)
   deleteRecord: (recordId: string) => {
     const data = db.loadData();

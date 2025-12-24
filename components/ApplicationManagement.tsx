@@ -1,0 +1,370 @@
+
+import React, { useState, useMemo } from 'react';
+import { AppData, LeaveRecord } from '../types';
+import { db } from '../services/db';
+
+interface ApplicationManagementProps {
+  data: AppData;
+  onUpdate: () => void;
+}
+
+const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onUpdate }) => {
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [filterClient, setFilterClient] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Get unique clients
+  const clients = useMemo(() => {
+    const unique = new Set(data.employees.map(e => e.client));
+    return Array.from(unique).filter(Boolean).sort();
+  }, [data.employees]);
+
+  // Filter records
+  const filteredRecords = useMemo(() => {
+    return data.records
+      .filter(r => {
+        if (filterStatus !== 'all' && r.status !== filterStatus) return false;
+        if (dateFrom && r.date < dateFrom) return false;
+        if (dateTo && r.date > dateTo) return false;
+        if (filterClient) {
+          const emp = data.employees.find(e => e.id === r.employeeId);
+          if (!emp || emp.client !== filterClient) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [data.records, data.employees, filterStatus, filterClient, dateFrom, dateTo]);
+
+  // Stats
+  const stats = useMemo(() => ({
+    pending: data.records.filter(r => r.status === 'pending').length,
+    approved: data.records.filter(r => r.status === 'approved').length,
+    rejected: data.records.filter(r => r.status === 'rejected').length,
+    total: data.records.length
+  }), [data.records]);
+
+  const pendingRecords = filteredRecords.filter(r => r.status === 'pending');
+
+  const handleApprove = (recordId: string) => {
+    if (db.approveRecord(recordId)) {
+      onUpdate();
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        next.delete(recordId);
+        return next;
+      });
+    }
+  };
+
+  const handleReject = (recordId: string) => {
+    const reason = prompt('却下理由を入力してください（任意）:');
+    if (db.rejectRecord(recordId, reason || undefined)) {
+      onUpdate();
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        next.delete(recordId);
+        return next;
+      });
+    }
+  };
+
+  const handleBulkApprove = () => {
+    const pendingSelected = Array.from(selectedIds).filter(id => {
+      const record = data.records.find(r => r.id === id);
+      return record?.status === 'pending';
+    });
+
+    if (pendingSelected.length === 0) {
+      alert('承認する保留中の申請を選択してください');
+      return;
+    }
+
+    if (confirm(`${pendingSelected.length}件の申請を一括承認しますか？`)) {
+      const count = db.approveMultiple(pendingSelected);
+      alert(`${count}件の申請を承認しました`);
+      setSelectedIds(new Set());
+      onUpdate();
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === pendingRecords.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pendingRecords.map(r => r.id!)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const exportToCSV = () => {
+    const headers = ['申請日', '取得日', '社員№', '氏名', '派遣先', '種類', '状態', '承認日', '備考'];
+    const rows = filteredRecords.map(r => {
+      const emp = data.employees.find(e => e.id === r.employeeId);
+      return [
+        r.createdAt.split('T')[0],
+        r.date,
+        r.employeeId,
+        emp?.name || '不明',
+        emp?.client || '不明',
+        r.type === 'paid' ? '有給' : r.type === 'special' ? '特別休暇' : '欠勤',
+        r.status === 'pending' ? '保留中' : r.status === 'approved' ? '承認済' : '却下',
+        r.approvedAt?.split('T')[0] || '',
+        r.note || ''
+      ].join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `申請一覧_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const getEmployeeInfo = (employeeId: string) => {
+    return data.employees.find(e => e.id === employeeId);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-[10px] font-bold rounded">保留中</span>;
+      case 'approved':
+        return <span className="px-2 py-1 bg-green-500/20 text-green-400 text-[10px] font-bold rounded">承認済</span>;
+      case 'rejected':
+        return <span className="px-2 py-1 bg-red-500/20 text-red-400 text-[10px] font-bold rounded">却下</span>;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="p-12 space-y-8 animate-fadeIn max-w-[1600px] mx-auto">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row justify-between items-end gap-8 border-b border-white/5 pb-8">
+        <div className="space-y-4">
+          <div className="flex items-center gap-6">
+            <div className={`h-14 w-2 ${stats.pending > 0 ? 'bg-yellow-500 shadow-[0_0_20px_#eab308]' : 'bg-green-500 shadow-[0_0_20px_#22c55e]'} animate-pulse`}></div>
+            <h2 className="text-6xl font-black italic tracking-tighter">申請管理</h2>
+          </div>
+          <p className="text-white/30 font-bold tracking-widest ml-8 text-sm">
+            Application Management System
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          {stats.pending > 0 && (
+            <button
+              onClick={handleBulkApprove}
+              disabled={selectedIds.size === 0}
+              className="px-6 py-3 bg-green-500 hover:bg-green-600 disabled:bg-white/10 disabled:text-white/30 text-black font-bold text-sm transition-all"
+            >
+              一括承認 ({selectedIds.size})
+            </button>
+          )}
+          <button
+            onClick={exportToCSV}
+            className="px-6 py-3 bg-white/10 hover:bg-white/20 font-bold text-sm transition-all"
+          >
+            CSV出力
+          </button>
+        </div>
+      </header>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <button
+          onClick={() => setFilterStatus('pending')}
+          className={`p-6 border transition-all ${filterStatus === 'pending' ? 'border-yellow-500 bg-yellow-500/10' : 'border-white/10 bg-white/5 hover:border-yellow-500/50'}`}
+        >
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">保留中</p>
+          <p className="text-4xl font-black text-yellow-400">{stats.pending}</p>
+        </button>
+        <button
+          onClick={() => setFilterStatus('approved')}
+          className={`p-6 border transition-all ${filterStatus === 'approved' ? 'border-green-500 bg-green-500/10' : 'border-white/10 bg-white/5 hover:border-green-500/50'}`}
+        >
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">承認済</p>
+          <p className="text-4xl font-black text-green-400">{stats.approved}</p>
+        </button>
+        <button
+          onClick={() => setFilterStatus('rejected')}
+          className={`p-6 border transition-all ${filterStatus === 'rejected' ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-white/5 hover:border-red-500/50'}`}
+        >
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">却下</p>
+          <p className="text-4xl font-black text-red-400">{stats.rejected}</p>
+        </button>
+        <button
+          onClick={() => setFilterStatus('all')}
+          className={`p-6 border transition-all ${filterStatus === 'all' ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-white/5 hover:border-blue-500/50'}`}
+        >
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">全件</p>
+          <p className="text-4xl font-black text-blue-400">{stats.total}</p>
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 p-4 bg-white/5 border border-white/10">
+        <div className="flex flex-col gap-1">
+          <label className="text-[9px] font-bold text-white/40 uppercase">派遣先</label>
+          <select
+            value={filterClient}
+            onChange={(e) => setFilterClient(e.target.value)}
+            className="bg-black border border-white/20 text-xs font-bold p-2 outline-none min-w-[150px]"
+          >
+            <option value="">すべて</option>
+            {clients.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[9px] font-bold text-white/40 uppercase">開始日</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="bg-black border border-white/20 text-xs font-bold p-2 outline-none"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[9px] font-bold text-white/40 uppercase">終了日</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="bg-black border border-white/20 text-xs font-bold p-2 outline-none"
+          />
+        </div>
+        <div className="flex items-end">
+          <button
+            onClick={() => { setFilterClient(''); setDateFrom(''); setDateTo(''); setFilterStatus('all'); }}
+            className="px-4 py-2 text-xs font-bold text-white/40 hover:text-white transition-all"
+          >
+            リセット
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="border border-white/10 overflow-hidden">
+        {filteredRecords.length > 0 ? (
+          <table className="w-full">
+            <thead className="bg-white/5">
+              <tr className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                {stats.pending > 0 && filterStatus !== 'approved' && filterStatus !== 'rejected' && (
+                  <th className="p-4 text-left w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === pendingRecords.length && pendingRecords.length > 0}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4"
+                    />
+                  </th>
+                )}
+                <th className="p-4 text-left">状態</th>
+                <th className="p-4 text-left">取得日</th>
+                <th className="p-4 text-left">社員</th>
+                <th className="p-4 text-left">派遣先</th>
+                <th className="p-4 text-left">種類</th>
+                <th className="p-4 text-left">申請日</th>
+                <th className="p-4 text-left">備考</th>
+                <th className="p-4 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filteredRecords.map(record => {
+                const emp = getEmployeeInfo(record.employeeId);
+                const isPending = record.status === 'pending';
+
+                return (
+                  <tr key={record.id} className="hover:bg-white/[0.02] transition-all">
+                    {stats.pending > 0 && filterStatus !== 'approved' && filterStatus !== 'rejected' && (
+                      <td className="p-4">
+                        {isPending && (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(record.id!)}
+                            onChange={() => toggleSelect(record.id!)}
+                            className="w-4 h-4"
+                          />
+                        )}
+                      </td>
+                    )}
+                    <td className="p-4">{getStatusBadge(record.status)}</td>
+                    <td className="p-4 font-bold text-lg">{record.date}</td>
+                    <td className="p-4">
+                      <div className="font-bold">{emp?.name || '不明'}</div>
+                      <div className="text-xs text-white/40">№{record.employeeId}</div>
+                    </td>
+                    <td className="p-4 text-sm text-white/60">{emp?.client || '不明'}</td>
+                    <td className="p-4">
+                      <span className={`text-xs font-bold ${record.type === 'paid' ? 'text-blue-400' : record.type === 'special' ? 'text-purple-400' : 'text-gray-400'}`}>
+                        {record.type === 'paid' ? '有給' : record.type === 'special' ? '特別' : '欠勤'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-xs text-white/40">
+                      {new Date(record.createdAt).toLocaleDateString('ja-JP')}
+                    </td>
+                    <td className="p-4 text-xs text-white/40 max-w-[150px] truncate">
+                      {record.note || '-'}
+                    </td>
+                    <td className="p-4">
+                      {isPending ? (
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            onClick={() => handleApprove(record.id!)}
+                            className="px-3 py-1 bg-green-500/20 hover:bg-green-500/40 text-green-400 text-xs font-bold rounded transition-all"
+                          >
+                            承認
+                          </button>
+                          <button
+                            onClick={() => handleReject(record.id!)}
+                            className="px-3 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 text-xs font-bold rounded transition-all"
+                          >
+                            却下
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-white/30 text-center">
+                          {record.approvedAt && (
+                            <span>{new Date(record.approvedAt).toLocaleDateString('ja-JP')}</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <div className="p-20 text-center">
+            <div className="text-6xl opacity-10 mb-4">📋</div>
+            <p className="text-white/30 font-bold">該当する申請がありません</p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer info */}
+      <div className="text-xs text-white/20 text-center">
+        表示件数: {filteredRecords.length} / 全{data.records.length}件
+      </div>
+    </div>
+  );
+};
+
+export default ApplicationManagement;

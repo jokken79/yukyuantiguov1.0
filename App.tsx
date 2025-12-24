@@ -6,6 +6,7 @@ import ExcelSync from './components/ExcelSync';
 import EmployeeList from './components/EmployeeList';
 import LeaveRequest from './components/LeaveRequest';
 import AccountingReports from './components/AccountingReports';
+import ApplicationManagement from './components/ApplicationManagement';
 import { db } from './services/db';
 import { AppData } from './types';
 
@@ -29,6 +30,8 @@ const App: React.FC = () => {
         return <AccountingReports data={appData} />;
       case 'request':
         return <LeaveRequest data={appData} onSuccess={refreshData} />;
+      case 'applications':
+        return <ApplicationManagement data={appData} onUpdate={refreshData} />;
       default:
         return (
           <div className="p-8 flex flex-col items-center justify-center h-full space-y-8 opacity-20">

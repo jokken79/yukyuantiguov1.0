@@ -22,11 +22,11 @@ const AccountingReports: React.FC<AccountingReportsProps> = ({ data }) => {
     return { start, end };
   }, [selectedYear, selectedMonth, cutoffDay]);
 
-  // 期間内の申請レコードをフィルタリングし、社員ごとに集計
+  // 期間内の申請レコードをフィルタリングし、社員ごとに集計 (承認済のみ)
   const reportData = useMemo(() => {
     const recordsInPeriod = data.records.filter(r => {
       const d = new Date(r.date);
-      return d >= period.start && d <= period.end && r.type === 'paid';
+      return d >= period.start && d <= period.end && r.type === 'paid' && r.status === 'approved';
     });
 
     const summary: Record<string, { emp: Employee; days: string[]; total: number }> = {};

@@ -25,10 +25,15 @@ export interface Employee {
 }
 
 export interface LeaveRecord {
+  id?: string; // Unique ID for the record
   employeeId: string;
   date: string;
   type: 'paid' | 'unpaid' | 'special';
   note?: string;
+  status: 'pending' | 'approved' | 'rejected'; // 承認ステータス
+  createdAt: string; // 申請日時
+  approvedAt?: string; // 承認日時
+  approvedBy?: string; // 承認者
 }
 
 export interface AppData {

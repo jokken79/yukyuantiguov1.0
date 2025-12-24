@@ -200,7 +200,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.employeeId || !formData.date) return;
-    
+
     db.addRecord({
       employeeId: formData.employeeId,
       date: formData.date,
@@ -208,9 +208,9 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
       note: formData.note
     });
 
-    setFormData(prev => ({ ...prev, note: '' }));
+    setFormData(prev => ({ ...prev, note: '', date: new Date().toISOString().split('T')[0] }));
     onSuccess();
-    alert("休暇申請が完了しました。最新の有給残高が更新されました。");
+    alert("休暇申請を受け付けました。\n\n※承認後に有給残高が更新されます。\n申請管理ページで承認状況を確認できます。");
   };
 
   return (

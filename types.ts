@@ -3,6 +3,7 @@ export interface Employee {
   id: string; // 社員№
   name: string; // 氏名
   client: string; // 派遣先
+  category?: string; // 派遣社員 / 請負社員 / スタッフ
   grantedTotal: number; // 付与合計
   usedTotal: number; // 消化合計
   balance: number; // 期末残高

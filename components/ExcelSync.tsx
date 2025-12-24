@@ -21,99 +21,113 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const firstSheet = workbook.Sheets[firstSheetName];
 
-        // 1. まず配列として読み込み、ヘッダー行を探す
-        const rawRows = XLSX.utils.sheet_to_json<any[]>(firstSheet, { header: 1 });
-        let headerRowIndex = 0;
-        const targetKeywords = ['社員', '氏名', 'Employee', 'Name', 'ID', 'No', '№', '名前', '派遣先'];
-
-        for (let i = 0; i < Math.min(rawRows.length, 20); i++) {
-          const row = rawRows[i];
-          if (!Array.isArray(row)) continue;
-          
-          const matchCount = row.filter((cell: any) => 
-            cell && typeof cell === 'string' && targetKeywords.some(kw => cell.includes(kw))
-          ).length;
-
-          if (matchCount >= 2) {
-            headerRowIndex = i;
-            break;
-          }
-        }
-
-        // 2. 特定したヘッダー行からデータを再取得
-        const jsonData = XLSX.utils.sheet_to_json<any>(firstSheet, { range: headerRowIndex });
+        // 対象シート: DBGenzaiX(派遣社員), DBUkeoiX(請負社員), DBStaffX(スタッフ)
+        const targetSheets = [
+          { name: 'DBGenzaiX', category: '派遣社員', color: '#00e5ff' },
+          { name: 'DBUkeoiX', category: '請負社員', color: '#ff6b6b' },
+          { name: 'DBStaffX', category: 'スタッフ', color: '#ffd93d' }
+        ];
 
         const currentAppData = db.loadData();
         const existingEmployees = [...currentAppData.employees];
-        let updateCount = 0;
-        
-        // ヘッダーの特徴から自動判別
-        let hasLeaveData = false;
-        if (jsonData.length > 0) {
-          const firstRowKeys = Object.keys(jsonData[0]).map(k => k.trim());
-          hasLeaveData = firstRowKeys.some(k => 
-            ['付与', '消化', '残日数', '有給', 'Granted', 'Used', 'Balance'].some(keyword => k.includes(keyword))
-          );
-        }
+        let totalUpdateCount = 0;
+        const sheetStats: string[] = [];
 
-        const detectedType = hasLeaveData ? "有給休暇管理データ" : "社員台帳（マスター）";
-        const typeColor = hasLeaveData ? "text-blue-500 border-blue-500/30 bg-blue-500/10" : "text-yellow-500 border-yellow-500/30 bg-yellow-500/10";
-
-        jsonData.forEach((row: any) => {
-          const findVal = (keys: string[]) => {
-            const foundKey = Object.keys(row).find(k => keys.includes(k.trim()));
-            return foundKey ? row[foundKey] : null;
-          };
-
-          const id = String(findVal(['社員№', '社員番号', '社員ID', 'ID', 'No', '№']));
-          if (!id || id === 'undefined' || id === 'null') return;
-
-          const existingIdx = existingEmployees.findIndex(e => e.id === id);
-          
-          const name = findVal(['氏名', '名前', '従業員名', 'Name']);
-          const client = findVal(['派遣先', '工場', '部署', '勤務地', 'Client', 'Factory']);
-          const grantedTotal = findVal(['付与数', '付与合計', '付与日数', '当期付与', 'Granted']);
-          const usedTotal = findVal(['消化日数', '消化合計', '使用日数', 'Used']);
-          const balance = findVal(['期末残高', '残日数', '有給残', 'Balance']);
-          const expiredCount = findVal(['時効数', '時効', '消滅日数', 'Expired']);
-          const status = findVal(['在職中', '状態', 'ステータス', 'Status']);
-
-          if (existingIdx >= 0) {
-            const emp = existingEmployees[existingIdx];
-            existingEmployees[existingIdx] = {
-              ...emp,
-              name: name ? String(name) : emp.name,
-              client: client ? String(client) : emp.client,
-              grantedTotal: grantedTotal !== null ? Number(grantedTotal) : emp.grantedTotal,
-              usedTotal: usedTotal !== null ? Number(usedTotal) : emp.usedTotal,
-              balance: balance !== null ? Number(balance) : emp.balance,
-              expiredCount: expiredCount !== null ? Number(expiredCount) : emp.expiredCount,
-              status: status ? String(status) : emp.status,
-              lastSync: new Date().toISOString()
-            };
-          } else {
-            existingEmployees.push({
-              id,
-              name: name ? String(name) : '未設定',
-              client: client ? String(client) : '未設定',
-              grantedTotal: Number(grantedTotal || 0),
-              usedTotal: Number(usedTotal || 0),
-              balance: Number(balance || 0),
-              expiredCount: Number(expiredCount || 0),
-              status: status ? String(status) : '在職中',
-              lastSync: new Date().toISOString()
-            });
+        targetSheets.forEach(({ name: sheetName, category }) => {
+          if (!workbook.SheetNames.includes(sheetName)) {
+            console.log(`Sheet "${sheetName}" not found, skipping...`);
+            return;
           }
-          updateCount++;
+
+          const sheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json<any>(sheet);
+
+          if (jsonData.length === 0) {
+            console.log(`Sheet "${sheetName}" has no data, skipping...`);
+            return;
+          }
+
+          let sheetUpdateCount = 0;
+
+          jsonData.forEach((row: any) => {
+            const findVal = (keys: string[]) => {
+              const foundKey = Object.keys(row).find(k => keys.includes(k.trim()));
+              return foundKey ? row[foundKey] : null;
+            };
+
+            const id = String(findVal(['社員№', '社員番号', '社員ID', 'ID', 'No', '№']));
+            if (!id || id === 'undefined' || id === 'null' || id === '') return;
+
+            const existingIdx = existingEmployees.findIndex(emp => emp.id === id);
+
+            const name = findVal(['氏名', '名前', '従業員名', 'Name']);
+            const client = findVal(['派遣先', '請負業務', '事務所', '工場', '部署', '勤務地', 'Client', 'Factory']);
+            const statusRaw = findVal(['現在', '在職中', '状態', 'ステータス', 'Status']);
+            const grantedTotal = findVal(['付与数', '付与合計', '付与日数', '当期付与', 'Granted']);
+            const usedTotal = findVal(['消化日数', '消化合計', '使用日数', 'Used']);
+            const balance = findVal(['期末残高', '残日数', '有給残', 'Balance']);
+            const expiredCount = findVal(['時効数', '時効', '消滅日数', 'Expired']);
+
+            // ステータスを正規化
+            let status = '在職中';
+            if (statusRaw) {
+              const statusStr = String(statusRaw).trim();
+              if (statusStr === '退社' || statusStr.includes('退')) {
+                status = '退社';
+              } else if (statusStr === '在職中' || statusStr.includes('在職')) {
+                status = '在職中';
+              } else {
+                status = statusStr;
+              }
+            }
+
+            if (existingIdx >= 0) {
+              const emp = existingEmployees[existingIdx];
+              existingEmployees[existingIdx] = {
+                ...emp,
+                name: name ? String(name) : emp.name,
+                client: client ? String(client) : emp.client,
+                category: category,
+                grantedTotal: grantedTotal !== null ? Number(grantedTotal) : emp.grantedTotal,
+                usedTotal: usedTotal !== null ? Number(usedTotal) : emp.usedTotal,
+                balance: balance !== null ? Number(balance) : emp.balance,
+                expiredCount: expiredCount !== null ? Number(expiredCount) : emp.expiredCount,
+                status: status,
+                lastSync: new Date().toISOString()
+              };
+            } else {
+              existingEmployees.push({
+                id,
+                name: name ? String(name) : '未設定',
+                client: client ? String(client) : '未設定',
+                category: category,
+                grantedTotal: Number(grantedTotal || 0),
+                usedTotal: Number(usedTotal || 0),
+                balance: Number(balance || 0),
+                expiredCount: Number(expiredCount || 0),
+                status: status,
+                lastSync: new Date().toISOString()
+              });
+            }
+            sheetUpdateCount++;
+          });
+
+          if (sheetUpdateCount > 0) {
+            sheetStats.push(`${category}: ${sheetUpdateCount}`);
+            totalUpdateCount += sheetUpdateCount;
+          }
         });
 
         currentAppData.employees = existingEmployees;
         db.saveData(currentAppData);
 
-        setStats({ count: updateCount, type: detectedType, color: typeColor });
+        const detectedType = sheetStats.length > 0
+          ? `社員台帳 (${sheetStats.join(', ')})`
+          : "データなし";
+        const typeColor = "text-green-500 border-green-500/30 bg-green-500/10";
+
+        setStats({ count: totalUpdateCount, type: detectedType, color: typeColor });
         onSyncComplete();
       } catch (err) {
         console.error(err);

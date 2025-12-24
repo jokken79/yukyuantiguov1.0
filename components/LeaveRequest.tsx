@@ -8,79 +8,115 @@ interface LeaveRequestProps {
   onSuccess: () => void;
 }
 
-// Categorizar fechas por período de aniversario (basado en 入社日)
+// Categorizar fechas por período de 有給 (basado en 入社日 + 6ヶ月, luego anual)
+// 労働基準法39条: 6ヶ月で初回付与、その後1年ごと
 interface YearGroup {
-  period: string; // "1年目", "2年目", etc.
-  periodStart: string;
-  periodEnd: string;
+  period: string; // "1回目(6ヶ月)", "2回目(1年6ヶ月)", etc.
+  grantDate: string; // 付与日
+  expiryDate: string; // 時効日 (2年後)
+  daysGranted: number; // 法定付与日数
   dates: string[];
   isExpired: boolean;
   expiresIn?: number; // meses hasta expirar
   isCurrentPeriod: boolean;
 }
 
-// Calcular el período de aniversario basado en la fecha de entrada
+// 法定付与日数テーブル (労働基準法39条)
+const LEGAL_GRANT_TABLE: { months: number; days: number }[] = [
+  { months: 6, days: 10 },    // 6ヶ月
+  { months: 18, days: 11 },   // 1年6ヶ月
+  { months: 30, days: 12 },   // 2年6ヶ月
+  { months: 42, days: 14 },   // 3年6ヶ月
+  { months: 54, days: 16 },   // 4年6ヶ月
+  { months: 66, days: 18 },   // 5年6ヶ月
+  { months: 78, days: 20 },   // 6年6ヶ月以上
+];
+
+// Obtener el período de grant basado en la fecha
+const getGrantPeriod = (date: Date, entryDate: Date): number => {
+  const diffMonths = (date.getFullYear() - entryDate.getFullYear()) * 12 +
+                     (date.getMonth() - entryDate.getMonth());
+
+  if (diffMonths < 6) return -1; // Antes de la primera asignación
+
+  // Encontrar el período correspondiente
+  for (let i = LEGAL_GRANT_TABLE.length - 1; i >= 0; i--) {
+    if (diffMonths >= LEGAL_GRANT_TABLE[i].months) {
+      return i;
+    }
+  }
+  return 0;
+};
+
+// Calcular fecha de grant para un período específico
+const getGrantDate = (entryDate: Date, periodIndex: number): Date => {
+  const grantDate = new Date(entryDate);
+  grantDate.setMonth(grantDate.getMonth() + LEGAL_GRANT_TABLE[periodIndex].months);
+  return grantDate;
+};
+
 const categorizeDatesByEntryAnniversary = (dates: string[], entryDate: string | undefined): YearGroup[] => {
   if (!entryDate || dates.length === 0) return [];
 
   const now = new Date();
   const entry = new Date(entryDate);
 
-  // Calcular cuántos años han pasado desde la entrada
-  const getAnniversaryYear = (date: Date): number => {
-    const diffTime = date.getTime() - entry.getTime();
-    const diffYears = Math.floor(diffTime / (365.25 * 24 * 60 * 60 * 1000));
-    return Math.max(0, diffYears);
-  };
-
   // Período actual del empleado
-  const currentPeriod = getAnniversaryYear(now);
+  const currentPeriod = getGrantPeriod(now, entry);
 
-  // Agrupar fechas por período de aniversario
+  // Agrupar fechas por período de grant
   const yearGroups: Map<number, string[]> = new Map();
 
   dates.forEach(dateStr => {
     const date = new Date(dateStr);
-    const period = getAnniversaryYear(date);
+    const period = getGrantPeriod(date, entry);
 
-    if (!yearGroups.has(period)) {
-      yearGroups.set(period, []);
+    if (period >= 0) {
+      if (!yearGroups.has(period)) {
+        yearGroups.set(period, []);
+      }
+      yearGroups.get(period)!.push(dateStr);
     }
-    yearGroups.get(period)!.push(dateStr);
   });
 
   const result: YearGroup[] = [];
   // Ordenar por período más reciente primero (nuevos primero = 新しい付与分から消化)
   const sortedPeriods = Array.from(yearGroups.keys()).sort((a, b) => b - a);
 
-  sortedPeriods.forEach(period => {
-    const periodDates = yearGroups.get(period)!.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  sortedPeriods.forEach(periodIndex => {
+    const periodDates = yearGroups.get(periodIndex)!.sort((a, b) =>
+      new Date(b).getTime() - new Date(a).getTime()
+    );
 
-    // Calcular fechas de inicio y fin del período
-    const periodStartDate = new Date(entry);
-    periodStartDate.setFullYear(entry.getFullYear() + period);
-    const periodEndDate = new Date(entry);
-    periodEndDate.setFullYear(entry.getFullYear() + period + 1);
-    periodEndDate.setDate(periodEndDate.getDate() - 1);
-
-    // Un período expira 2 años después de su inicio
-    const expiryDate = new Date(periodStartDate);
+    const grantDate = getGrantDate(entry, periodIndex);
+    const expiryDate = new Date(grantDate);
     expiryDate.setFullYear(expiryDate.getFullYear() + 2);
 
     const isExpired = now >= expiryDate;
-    const isCurrentPeriod = period === currentPeriod;
+    const isCurrentPeriod = periodIndex === currentPeriod;
 
-    // Calcular meses hasta expirar si está en el año anterior al actual
+    // Calcular meses hasta expirar
     let expiresIn: number | undefined;
-    if (!isExpired && period === currentPeriod - 1) {
-      const monthsUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (30 * 24 * 60 * 60 * 1000));
-      expiresIn = Math.max(0, monthsUntilExpiry);
+    if (!isExpired) {
+      const monthsUntilExpiry = Math.ceil(
+        (expiryDate.getTime() - now.getTime()) / (30 * 24 * 60 * 60 * 1000)
+      );
+      if (monthsUntilExpiry <= 12) {
+        expiresIn = Math.max(0, monthsUntilExpiry);
+      }
     }
 
+    // Nombre del período
+    const monthsFromEntry = LEGAL_GRANT_TABLE[periodIndex].months;
+    const periodName = monthsFromEntry === 6
+      ? '初回(6ヶ月)'
+      : `${Math.floor(monthsFromEntry / 12)}年${monthsFromEntry % 12 > 0 ? (monthsFromEntry % 12) + 'ヶ月' : ''}`;
+
     result.push({
-      period: `${period + 1}年目`,
-      periodStart: periodStartDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short' }),
-      periodEnd: periodEndDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short' }),
+      period: periodName,
+      grantDate: grantDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' }),
+      expiryDate: expiryDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' }),
+      daysGranted: LEGAL_GRANT_TABLE[periodIndex].days,
       dates: periodDates,
       isExpired,
       expiresIn,
@@ -373,11 +409,15 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                             }`}>
                               {yearGroup.period}
                             </span>
+                            <span className="text-[10px] text-white/50 bg-white/5 px-1.5 py-0.5 rounded">
+                              付与{yearGroup.daysGranted}日
+                            </span>
                             <span className="text-xs text-white/40">({yearGroup.dates.length}日消化)</span>
                           </div>
-                          <span className="text-[9px] text-white/30">
-                            {yearGroup.periodStart} 〜 {yearGroup.periodEnd}
-                          </span>
+                          <div className="text-[9px] text-white/30 flex gap-2">
+                            <span>付与: {yearGroup.grantDate}</span>
+                            <span>→ 時効: {yearGroup.expiryDate}</span>
+                          </div>
                         </div>
                         {yearGroup.isExpired ? (
                           <span className="text-[10px] font-bold text-red-400 bg-red-500/20 px-2 py-0.5 rounded">時効済</span>
@@ -415,11 +455,11 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                     </div>
                   ))}
 
-                  {/* Regla de consumo */}
+                  {/* Regla de consumo - 労働基準法39条 */}
                   <div className="mt-4 p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
                     <p className="text-[10px] text-white/60 leading-relaxed">
-                      <span className="text-indigo-400 font-bold">消化ルール:</span> 新しい付与分から優先消化。
-                      付与から2年経過で時効消滅。
+                      <span className="text-indigo-400 font-bold">労働基準法39条:</span> 入社6ヶ月で初回付与(10日)、以降1年ごとに付与。
+                      各付与から2年で時効。<span className="text-pink-400">新しい付与分から優先消化。</span>
                     </p>
                   </div>
                 </div>

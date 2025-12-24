@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { db } from '../services/db';
 import { Employee } from '../types';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ExcelSyncProps {
   onSyncComplete: () => void;
@@ -382,6 +383,7 @@ const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color,
 };
 
 const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
+  const { isDark } = useTheme();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(loadSyncStatus);
   const [loadingDaicho, setLoadingDaicho] = useState(false);
   const [loadingYukyu, setLoadingYukyu] = useState(false);
@@ -499,16 +501,16 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
 
   return (
     <div className="p-12 max-w-[1200px] mx-auto space-y-12 animate-fadeIn relative pb-32">
-      <div className="absolute top-0 right-0 text-[18vw] font-black text-white/[0.01] select-none pointer-events-none italic tracking-tighter">同期</div>
+      <div className={`absolute top-0 right-0 text-[18vw] font-black select-none pointer-events-none italic tracking-tighter ${isDark ? 'text-white/[0.01]' : 'text-slate-900/[0.02]'}`}>同期</div>
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-end gap-8 relative z-10 border-b border-white/5 pb-12">
+      <header className={`flex flex-col md:flex-row justify-between items-end gap-8 relative z-10 border-b pb-12 ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
         <div className="space-y-4">
           <div className="flex items-center gap-6">
             <div className="h-14 w-2 bg-blue-500 shadow-[0_0_20px_#00e5ff] animate-pulse"></div>
-            <h2 className="text-7xl font-black italic tracking-tighter aggressive-text">データ同期</h2>
+            <h2 className={`text-7xl font-black italic tracking-tighter ${isDark ? 'aggressive-text' : 'text-slate-800'}`}>データ同期</h2>
           </div>
-          <div className="flex items-center gap-4 text-white/30 font-black tracking-[0.4em] ml-8 text-sm">
+          <div className={`flex items-center gap-4 font-black tracking-[0.4em] ml-8 text-sm ${isDark ? 'text-white/30' : 'text-slate-500'}`}>
             <span>2ファイル対応</span>
             <span className="text-blue-500">●</span>
             <span>社員台帳 + 有給休暇管理</span>
@@ -533,7 +535,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
           className={`flex items-center gap-3 px-6 py-3 rounded-lg border transition-all ${
             syncStatus.includeResigned
               ? 'border-red-500/50 bg-red-500/10 text-red-400'
-              : 'border-white/10 bg-white/5 text-white/60 hover:border-white/30'
+              : isDark ? 'border-white/10 bg-white/5 text-white/60 hover:border-white/30' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
           }`}
         >
           <div className={`w-10 h-5 rounded-full relative transition-colors ${
@@ -580,7 +582,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         <div className="flex justify-center">
           <button
             onClick={resetSync}
-            className="text-xs text-white/30 hover:text-white/60 transition-colors font-bold tracking-wider"
+            className={`text-xs transition-colors font-bold tracking-wider ${isDark ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600'}`}
           >
             同期状態をリセット
           </button>
@@ -589,21 +591,21 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-        <div className="bg-[#0a0a0a] p-10 border border-white/5 space-y-4 group hover:border-green-500/50 transition-colors">
+        <div className={`p-10 border space-y-4 group hover:border-green-500/50 transition-colors ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="text-green-500 font-black text-xl italic tracking-tighter">01. 社員台帳</div>
-          <p className="text-xs text-white/40 leading-relaxed font-bold">
+          <p className={`text-xs leading-relaxed font-bold ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
             社員の基本情報（社員№、氏名、派遣先、ステータス）を取り込みます。派遣・請負・スタッフの3カテゴリに対応。
           </p>
         </div>
-        <div className="bg-[#0a0a0a] p-10 border border-white/5 space-y-4 group hover:border-blue-500/50 transition-colors">
+        <div className={`p-10 border space-y-4 group hover:border-blue-500/50 transition-colors ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="text-blue-500 font-black text-xl italic tracking-tighter">02. 有給休暇管理</div>
-          <p className="text-xs text-white/40 leading-relaxed font-bold">
+          <p className={`text-xs leading-relaxed font-bold ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
             有給発生日、付与数、消化日数、期末残高、時効数、取得日一覧を完全に取り込みます。
           </p>
         </div>
-        <div className="bg-[#0a0a0a] p-10 border border-white/5 space-y-4 group hover:border-white/50 transition-colors">
-          <div className="text-white font-black text-xl italic tracking-tighter">03. データ統合</div>
-          <p className="text-xs text-white/40 leading-relaxed font-bold">
+        <div className={`p-10 border space-y-4 group transition-colors ${isDark ? 'bg-[#0a0a0a] border-white/5 hover:border-white/50' : 'bg-white border-slate-200 shadow-sm hover:border-slate-400'}`}>
+          <div className={`font-black text-xl italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-800'}`}>03. データ統合</div>
+          <p className={`text-xs leading-relaxed font-bold ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
             社員番号を基にデータを自動統合。両方アップロードすると完全なデータベースが構築されます。
           </p>
         </div>

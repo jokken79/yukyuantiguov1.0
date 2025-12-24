@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { AppData, Employee } from '../types';
 import { db } from '../services/db';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface LeaveRequestProps {
   data: AppData;
@@ -128,6 +129,7 @@ const categorizeDatesByEntryAnniversary = (dates: string[], entryDate: string | 
 };
 
 const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
+  const { isDark } = useTheme();
   const [selectedClient, setSelectedClient] = useState('');
   const [formData, setFormData] = useState({
     employeeId: '',
@@ -216,11 +218,11 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8 animate-fadeIn">
       <div className="mb-4">
-        <h2 className="text-3xl font-extrabold gradient-text">有給休暇申請</h2>
-        <p className="text-white/50 mt-2">
+        <h2 className={`text-3xl font-extrabold ${isDark ? 'text-white' : 'text-slate-800'}`}>有給休暇申請</h2>
+        <p className={`mt-2 ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
           工場を選択して従業員を絞り込み、申請を行います。
           <br />
-          <span className="text-xs italic text-indigo-400 opacity-80">
+          <span className="text-xs italic text-indigo-500 opacity-80">
             ※当社の規定（新しい付与分から優先消化）に基づき計算されます。
           </span>
         </p>
@@ -229,38 +231,38 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left: Input Form */}
         <div className="lg:col-span-7">
-          <form onSubmit={handleSubmit} className="glass p-8 rounded-3xl space-y-6">
+          <form onSubmit={handleSubmit} className={`p-8 rounded-3xl space-y-6 ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-white/60">工場（派遣先）</label>
+                <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>工場（派遣先）</label>
                 <select
                   value={selectedClient}
                   onChange={(e) => {
                     setSelectedClient(e.target.value);
                     setFormData(prev => ({ ...prev, employeeId: '' }));
                   }}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-indigo-500 transition-all text-white outline-none"
+                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 >
-                  <option value="" className="bg-black">工場を選択</option>
-                  {factories.map(f => <option key={f} value={f} className="bg-black">{f}</option>)}
+                  <option value="" className={isDark ? 'bg-black' : 'bg-white'}>工場を選択</option>
+                  {factories.map(f => <option key={f} value={f} className={isDark ? 'bg-black' : 'bg-white'}>{f}</option>)}
                 </select>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-white/60">従業員名</label>
+                <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>従業員名</label>
                 <select
                   value={formData.employeeId}
                   onChange={(e) => setFormData(prev => ({ ...prev, employeeId: e.target.value }))}
                   disabled={!selectedClient}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-indigo-500 transition-all text-white outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 >
-                  <option value="" className="bg-black">
+                  <option value="" className={isDark ? 'bg-black' : 'bg-white'}>
                     {selectedClient ? '従業員を選択' : '先に工場を選択'}
                   </option>
                   {filteredEmployees.map(emp => (
-                    <option key={emp.id} value={emp.id} className="bg-black">{emp.name} (№{emp.id})</option>
+                    <option key={emp.id} value={emp.id} className={isDark ? 'bg-black' : 'bg-white'}>{emp.name} (№{emp.id})</option>
                   ))}
                 </select>
               </div>
@@ -268,44 +270,44 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-white/60">取得予定日</label>
+                <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>取得予定日</label>
                 <input
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-indigo-500 transition-all text-white outline-none"
+                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-white/60">休暇の種類</label>
+                <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>休暇の種類</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-indigo-500 transition-all text-white outline-none"
+                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                 >
-                  <option value="paid" className="bg-black">有給休暇 (全休)</option>
-                  <option value="special" className="bg-black">特別休暇</option>
-                  <option value="unpaid" className="bg-black">欠勤</option>
+                  <option value="paid" className={isDark ? 'bg-black' : 'bg-white'}>有給休暇 (全休)</option>
+                  <option value="special" className={isDark ? 'bg-black' : 'bg-white'}>特別休暇</option>
+                  <option value="unpaid" className={isDark ? 'bg-black' : 'bg-white'}>欠勤</option>
                 </select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-white/60">備考 / 理由</label>
+              <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>備考 / 理由</label>
               <textarea
                 value={formData.note}
                 onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
                 placeholder="私用、冠婚葬祭など..."
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-indigo-500 transition-all text-white outline-none h-24 resize-none"
+                className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none h-24 resize-none ${isDark ? 'bg-white/5 border border-white/10 text-white placeholder:text-white/30' : 'bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
               />
             </div>
 
             <button
               type="submit"
               disabled={!formData.employeeId}
-              className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:bg-white/10 disabled:text-white/20 py-4 rounded-2xl font-bold text-lg transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
+              className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:bg-slate-300 disabled:text-slate-400 py-4 rounded-2xl font-bold text-lg text-white transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
             >
               申請を確定する
             </button>
@@ -315,46 +317,46 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
         {/* Right: Analysis & Summary Card + History */}
         <div className="lg:col-span-5 space-y-6">
           {/* Employee Summary Card */}
-          <div className="glass p-6 rounded-3xl relative overflow-hidden group">
+          <div className={`p-6 rounded-3xl relative overflow-hidden group ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl group-hover:bg-indigo-500/10 transition-all"></div>
 
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>
               <span className="text-xl">📋</span> 従業員詳細
             </h3>
 
             {selectedEmployee ? (
               <div className="space-y-4">
-                <div className="flex justify-between items-end border-b border-white/5 pb-4">
+                <div className={`flex justify-between items-end pb-4 ${isDark ? 'border-b border-white/5' : 'border-b border-slate-100'}`}>
                   <div>
-                    <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Employee</p>
-                    <h4 className="text-xl font-bold">{selectedEmployee.name}</h4>
-                    <p className="text-indigo-400 text-sm font-medium">{selectedEmployee.client} / №{selectedEmployee.id}</p>
+                    <p className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Employee</p>
+                    <h4 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.name}</h4>
+                    <p className="text-indigo-500 text-sm font-medium">{selectedEmployee.client} / №{selectedEmployee.id}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-white/40 font-bold mb-1 uppercase">残高</p>
-                    <div className="text-4xl font-black gradient-text">{selectedEmployee.balance}<span className="text-sm ml-1 text-white">日</span></div>
+                    <p className={`text-[10px] font-bold mb-1 uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>残高</p>
+                    <div className="text-4xl font-black gradient-text">{selectedEmployee.balance}<span className={`text-sm ml-1 ${isDark ? 'text-white' : 'text-slate-600'}`}>日</span></div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                    <p className="text-[9px] text-white/40 font-bold uppercase">付与</p>
-                    <p className="text-lg font-bold text-green-400">{selectedEmployee.grantedTotal}</p>
+                  <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
+                    <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>付与</p>
+                    <p className="text-lg font-bold text-green-500">{selectedEmployee.grantedTotal}</p>
                   </div>
-                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                    <p className="text-[9px] text-white/40 font-bold uppercase">消化</p>
-                    <p className="text-lg font-bold text-pink-400">{selectedEmployee.usedTotal}</p>
+                  <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
+                    <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>消化</p>
+                    <p className="text-lg font-bold text-pink-500">{selectedEmployee.usedTotal}</p>
                   </div>
-                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                    <p className="text-[9px] text-white/40 font-bold uppercase">時効</p>
-                    <p className="text-lg font-bold text-orange-400">{selectedEmployee.expiredCount}</p>
+                  <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
+                    <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>時効</p>
+                    <p className="text-lg font-bold text-orange-500">{selectedEmployee.expiredCount}</p>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="py-12 text-center space-y-3">
-                <div className="text-5xl opacity-10">👤</div>
-                <p className="text-white/20 text-sm font-medium italic">
+                <div className={`text-5xl ${isDark ? 'opacity-10' : 'opacity-20'}`}>👤</div>
+                <p className={`text-sm font-medium italic ${isDark ? 'text-white/20' : 'text-slate-400'}`}>
                   従業員を選択してください
                 </p>
               </div>
@@ -362,13 +364,13 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
           </div>
 
           {/* Leave History Table - 有給取得履歴 */}
-          <div className="glass p-6 rounded-3xl">
+          <div className={`p-6 rounded-3xl ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-bold flex items-center gap-2">
+              <h4 className={`text-lg font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>
                 <span className="text-xl">📅</span> 有給取得履歴
               </h4>
               {selectedEmployee && allLeaveHistory.length > 0 && (
-                <span className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded-full font-bold">
+                <span className="text-xs bg-indigo-500/20 text-indigo-500 px-2 py-1 rounded-full font-bold">
                   計 {allLeaveHistory.length} 日
                 </span>
               )}
@@ -376,9 +378,9 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
 
             {/* Mostrar 入社日 si existe */}
             {selectedEmployee?.entryDate && (
-              <div className="mb-4 px-3 py-2 bg-white/5 rounded-lg text-xs">
-                <span className="text-white/40">入社日: </span>
-                <span className="text-indigo-400 font-bold">
+              <div className={`mb-4 px-3 py-2 rounded-lg text-xs ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                <span className={isDark ? 'text-white/40' : 'text-slate-400'}>入社日: </span>
+                <span className="text-indigo-500 font-bold">
                   {new Date(selectedEmployee.entryDate).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </span>
               </div>
@@ -409,12 +411,12 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                             }`}>
                               {yearGroup.period}
                             </span>
-                            <span className="text-[10px] text-white/50 bg-white/5 px-1.5 py-0.5 rounded">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'text-white/50 bg-white/5' : 'text-slate-500 bg-slate-100'}`}>
                               付与{yearGroup.daysGranted}日
                             </span>
-                            <span className="text-xs text-white/40">({yearGroup.dates.length}日消化)</span>
+                            <span className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>({yearGroup.dates.length}日消化)</span>
                           </div>
-                          <div className="text-[9px] text-white/30 flex gap-2">
+                          <div className={`text-[9px] flex gap-2 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
                             <span>付与: {yearGroup.grantDate}</span>
                             <span>→ 時効: {yearGroup.expiryDate}</span>
                           </div>
@@ -440,14 +442,14 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                             className={`text-[11px] font-mono py-1.5 px-2 rounded text-center ${
                               yearGroup.isExpired
                                 ? 'bg-red-500/5 text-red-400/60 line-through'
-                                : 'bg-white/5 text-white/80'
+                                : isDark ? 'bg-white/5 text-white/80' : 'bg-slate-50 text-slate-600'
                             }`}
                           >
                             {new Date(date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
                           </div>
                         ))}
                         {yearGroup.dates.length > 12 && (
-                          <div className="text-[10px] text-white/30 py-1.5 px-2 text-center">
+                          <div className={`text-[10px] py-1.5 px-2 text-center ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
                             +{yearGroup.dates.length - 12}件
                           </div>
                         )}
@@ -456,38 +458,38 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                   ))}
 
                   {/* Regla de consumo - 労働基準法39条 */}
-                  <div className="mt-4 p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
-                    <p className="text-[10px] text-white/60 leading-relaxed">
-                      <span className="text-indigo-400 font-bold">労働基準法39条:</span> 入社6ヶ月で初回付与(10日)、以降1年ごとに付与。
-                      各付与から2年で時効。<span className="text-pink-400">新しい付与分から優先消化。</span>
+                  <div className={`mt-4 p-3 rounded-xl ${isDark ? 'bg-indigo-500/5 border border-indigo-500/10' : 'bg-indigo-50 border border-indigo-100'}`}>
+                    <p className={`text-[10px] leading-relaxed ${isDark ? 'text-white/60' : 'text-slate-600'}`}>
+                      <span className="text-indigo-500 font-bold">労働基準法39条:</span> 入社6ヶ月で初回付与(10日)、以降1年ごとに付与。
+                      各付与から2年で時効。<span className="text-pink-500">新しい付与分から優先消化。</span>
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="py-8 text-center space-y-2">
-                  <div className="text-3xl opacity-20">📭</div>
-                  <p className="text-white/30 text-sm">取得履歴なし</p>
-                  <p className="text-white/20 text-xs">有給休暇管理.xlsmを同期してください</p>
+                  <div className={`text-3xl ${isDark ? 'opacity-20' : 'opacity-30'}`}>📭</div>
+                  <p className={`text-sm ${isDark ? 'text-white/30' : 'text-slate-400'}`}>取得履歴なし</p>
+                  <p className={`text-xs ${isDark ? 'text-white/20' : 'text-slate-300'}`}>有給休暇管理.xlsmを同期してください</p>
                 </div>
               )
             ) : (
               <div className="py-8 text-center">
-                <p className="text-white/20 text-sm italic">従業員選択後に表示</p>
+                <p className={`text-sm italic ${isDark ? 'text-white/20' : 'text-slate-400'}`}>従業員選択後に表示</p>
               </div>
             )}
           </div>
 
           {/* Monthly Stats */}
-          <div className="glass p-4 rounded-2xl">
+          <div className={`p-4 rounded-2xl ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-pink-500/20 rounded-xl flex items-center justify-center text-pink-400 text-xl font-bold">
+              <div className="w-12 h-12 bg-pink-500/20 rounded-xl flex items-center justify-center text-pink-500 text-xl font-bold">
                 {data.records.filter(r => {
                   const d = new Date(r.date);
                   const now = new Date();
                   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
                 }).length}
               </div>
-              <div className="text-xs text-white/40 leading-tight">
+              <div className={`text-xs leading-tight ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
                 今月の申請件数（全社員）
               </div>
             </div>

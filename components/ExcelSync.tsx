@@ -301,12 +301,15 @@ interface DropzoneProps {
   onProcess: (file: File) => void;
   loading: boolean;
   includeResigned: boolean;
+  isDark: boolean;
 }
 
-const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color, syncStatus, onProcess, loading, includeResigned }) => {
+const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color, syncStatus, onProcess, loading, includeResigned, isDark }) => {
   const [isDragging, setIsDragging] = useState(false);
 
-  const bgColor = isDragging ? `bg-${color}-500/5` : 'bg-[#0a0a0a]';
+  const bgColor = isDragging ? `bg-${color}-500/5` : isDark ? 'bg-[#0a0a0a]' : 'bg-white';
+  const borderIdle = isDark ? 'border-white/10' : 'border-slate-200';
+  const hoverBorder = isDark ? 'hover:border-white/20' : 'hover:border-slate-400';
 
   return (
     <div
@@ -314,8 +317,8 @@ const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color,
       onDragLeave={() => setIsDragging(false)}
       onDrop={(e) => { e.preventDefault(); setIsDragging(false); const file = e.dataTransfer.files[0]; if (file) onProcess(file); }}
       className={`relative border-2 border-dashed p-8 text-center transition-all duration-500 rounded-lg ${
-        isDragging ? `border-${color}-500 scale-[1.02]` : syncStatus.synced ? `border-${color}-500/30` : 'border-white/10'
-      } ${bgColor} hover:border-white/20`}
+        isDragging ? `border-${color}-500 scale-[1.02]` : syncStatus.synced ? `border-${color}-500/30` : borderIdle
+      } ${bgColor} ${hoverBorder} ${!isDark && 'shadow-sm'}`}
     >
       <input
         type="file"
@@ -327,7 +330,7 @@ const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color,
       {loading ? (
         <div className="flex flex-col items-center py-8 space-y-4">
           <div className={`w-16 h-16 border-t-4 border-${color}-500 rounded-full animate-spin`}></div>
-          <p className="text-lg font-black italic tracking-tighter animate-pulse">解析中...</p>
+          <p className={`text-lg font-black italic tracking-tighter animate-pulse ${isDark ? 'text-white' : 'text-slate-800'}`}>解析中...</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -338,43 +341,43 @@ const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color,
                 <span className="text-3xl">✓</span>
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-                <span className="text-3xl opacity-30">{icon}</span>
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+                <span className={`text-3xl ${isDark ? 'opacity-30' : 'opacity-40'}`}>{icon}</span>
               </div>
             )}
           </div>
 
           {/* Title */}
           <div>
-            <h3 className={`text-2xl font-black italic tracking-tighter ${syncStatus.synced ? `text-${color}-400` : 'text-white'}`}>
+            <h3 className={`text-2xl font-black italic tracking-tighter ${syncStatus.synced ? `text-${color}-500` : isDark ? 'text-white' : 'text-slate-800'}`}>
               {title}
             </h3>
-            <p className="text-xs text-white/40 mt-1">{subtitle}</p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{subtitle}</p>
           </div>
 
           {/* Status */}
           {syncStatus.synced ? (
             <div className="text-sm font-bold space-y-1">
-              <p className={`text-${color}-400`}>
+              <p className={`text-${color}-500`}>
                 {syncStatus.count.toLocaleString()} 件同期済
               </p>
               <div className="flex justify-center gap-4 text-xs">
-                <span className="text-green-400">在職中: {syncStatus.activeCount.toLocaleString()}</span>
+                <span className="text-green-500">在職中: {syncStatus.activeCount.toLocaleString()}</span>
                 {includeResigned && syncStatus.resignedCount > 0 && (
-                  <span className="text-red-400">退社: {syncStatus.resignedCount.toLocaleString()}</span>
+                  <span className="text-red-500">退社: {syncStatus.resignedCount.toLocaleString()}</span>
                 )}
                 {!includeResigned && syncStatus.resignedCount > 0 && (
-                  <span className="text-white/30">(退社 {syncStatus.resignedCount} 件除外)</span>
+                  <span className={isDark ? 'text-white/30' : 'text-slate-400'}>(退社 {syncStatus.resignedCount} 件除外)</span>
                 )}
               </div>
               {syncStatus.lastSync && (
-                <p className="text-xs text-white/30 mt-1">
+                <p className={`text-xs mt-1 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
                   {new Date(syncStatus.lastSync).toLocaleString('ja-JP')}
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-white/30 text-xs font-bold">ファイルをドラッグまたはクリック</p>
+            <p className={`text-xs font-bold ${isDark ? 'text-white/30' : 'text-slate-400'}`}>ファイルをドラッグまたはクリック</p>
           )}
         </div>
       )}
@@ -563,6 +566,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
           onProcess={processDaichoFile}
           loading={loadingDaicho}
           includeResigned={syncStatus.includeResigned}
+          isDark={isDark}
         />
         <Dropzone
           type="yukyu"
@@ -574,6 +578,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
           onProcess={processYukyuFile}
           loading={loadingYukyu}
           includeResigned={syncStatus.includeResigned}
+          isDark={isDark}
         />
       </div>
 

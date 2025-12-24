@@ -8,49 +8,83 @@ interface LeaveRequestProps {
   onSuccess: () => void;
 }
 
-// Categorizar fechas por año fiscal (Abril - Marzo)
+// Categorizar fechas por período de aniversario (basado en 入社日)
 interface YearGroup {
-  fiscalYear: string;
+  period: string; // "1年目", "2年目", etc.
+  periodStart: string;
+  periodEnd: string;
   dates: string[];
   isExpired: boolean;
   expiresIn?: number; // meses hasta expirar
+  isCurrentPeriod: boolean;
 }
 
-const categorizeDatesByFiscalYear = (dates: string[]): YearGroup[] => {
+// Calcular el período de aniversario basado en la fecha de entrada
+const categorizeDatesByEntryAnniversary = (dates: string[], entryDate: string | undefined): YearGroup[] => {
+  if (!entryDate || dates.length === 0) return [];
+
   const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
+  const entry = new Date(entryDate);
 
-  // Año fiscal actual (si estamos en Ene-Mar, pertenecemos al año fiscal anterior)
-  const currentFiscalYear = currentMonth >= 4 ? currentYear : currentYear - 1;
+  // Calcular cuántos años han pasado desde la entrada
+  const getAnniversaryYear = (date: Date): number => {
+    const diffTime = date.getTime() - entry.getTime();
+    const diffYears = Math.floor(diffTime / (365.25 * 24 * 60 * 60 * 1000));
+    return Math.max(0, diffYears);
+  };
 
+  // Período actual del empleado
+  const currentPeriod = getAnniversaryYear(now);
+
+  // Agrupar fechas por período de aniversario
   const yearGroups: Map<number, string[]> = new Map();
 
   dates.forEach(dateStr => {
     const date = new Date(dateStr);
-    const month = date.getMonth() + 1;
-    const year = date.getFullYear();
-    // Determinar año fiscal de esta fecha
-    const fiscalYear = month >= 4 ? year : year - 1;
+    const period = getAnniversaryYear(date);
 
-    if (!yearGroups.has(fiscalYear)) {
-      yearGroups.set(fiscalYear, []);
+    if (!yearGroups.has(period)) {
+      yearGroups.set(period, []);
     }
-    yearGroups.get(fiscalYear)!.push(dateStr);
+    yearGroups.get(period)!.push(dateStr);
   });
 
   const result: YearGroup[] = [];
-  const sortedYears = Array.from(yearGroups.keys()).sort((a, b) => b - a);
+  // Ordenar por período más reciente primero (nuevos primero = 新しい付与分から消化)
+  const sortedPeriods = Array.from(yearGroups.keys()).sort((a, b) => b - a);
 
-  sortedYears.forEach(fiscalYear => {
-    const dates = yearGroups.get(fiscalYear)!.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-    const yearDiff = currentFiscalYear - fiscalYear;
+  sortedPeriods.forEach(period => {
+    const periodDates = yearGroups.get(period)!.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    // Calcular fechas de inicio y fin del período
+    const periodStartDate = new Date(entry);
+    periodStartDate.setFullYear(entry.getFullYear() + period);
+    const periodEndDate = new Date(entry);
+    periodEndDate.setFullYear(entry.getFullYear() + period + 1);
+    periodEndDate.setDate(periodEndDate.getDate() - 1);
+
+    // Un período expira 2 años después de su inicio
+    const expiryDate = new Date(periodStartDate);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 2);
+
+    const isExpired = now >= expiryDate;
+    const isCurrentPeriod = period === currentPeriod;
+
+    // Calcular meses hasta expirar si está en el año anterior al actual
+    let expiresIn: number | undefined;
+    if (!isExpired && period === currentPeriod - 1) {
+      const monthsUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (30 * 24 * 60 * 60 * 1000));
+      expiresIn = Math.max(0, monthsUntilExpiry);
+    }
 
     result.push({
-      fiscalYear: `${fiscalYear}年度`,
-      dates,
-      isExpired: yearDiff >= 2, // 2年以上前は時効
-      expiresIn: yearDiff === 1 ? 12 - (currentMonth >= 4 ? currentMonth - 4 : currentMonth + 8) : undefined
+      period: `${period + 1}年目`,
+      periodStart: periodStartDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short' }),
+      periodEnd: periodEndDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short' }),
+      dates: periodDates,
+      isExpired,
+      expiresIn,
+      isCurrentPeriod
     });
   });
 
@@ -100,10 +134,10 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
     return allDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
   }, [selectedEmployee, data.records]);
 
-  // Agrupar por año fiscal
+  // Agrupar por período de aniversario (入社日)
   const historyByYear = useMemo(() => {
-    return categorizeDatesByFiscalYear(allLeaveHistory);
-  }, [allLeaveHistory]);
+    return categorizeDatesByEntryAnniversary(allLeaveHistory, selectedEmployee?.entryDate);
+  }, [allLeaveHistory, selectedEmployee?.entryDate]);
 
   // Analyze usage over the last 2 years from records
   const analysis = useMemo(() => {
@@ -304,33 +338,55 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
               )}
             </div>
 
+            {/* Mostrar 入社日 si existe */}
+            {selectedEmployee?.entryDate && (
+              <div className="mb-4 px-3 py-2 bg-white/5 rounded-lg text-xs">
+                <span className="text-white/40">入社日: </span>
+                <span className="text-indigo-400 font-bold">
+                  {new Date(selectedEmployee.entryDate).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </span>
+              </div>
+            )}
+
             {selectedEmployee ? (
-              allLeaveHistory.length > 0 ? (
-                <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                  {historyByYear.map((yearGroup, idx) => (
-                    <div key={yearGroup.fiscalYear} className="space-y-2">
-                      {/* Year Header */}
+              allLeaveHistory.length > 0 && historyByYear.length > 0 ? (
+                <div className="space-y-4 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                  {historyByYear.map((yearGroup) => (
+                    <div key={yearGroup.period} className="space-y-2">
+                      {/* Period Header */}
                       <div className={`flex items-center justify-between py-2 px-3 rounded-lg ${
                         yearGroup.isExpired
                           ? 'bg-red-500/10 border border-red-500/20'
                           : yearGroup.expiresIn !== undefined
                             ? 'bg-orange-500/10 border border-orange-500/20'
-                            : 'bg-green-500/10 border border-green-500/20'
+                            : yearGroup.isCurrentPeriod
+                              ? 'bg-blue-500/10 border border-blue-500/20'
+                              : 'bg-green-500/10 border border-green-500/20'
                       }`}>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-black ${
-                            yearGroup.isExpired ? 'text-red-400' : yearGroup.expiresIn !== undefined ? 'text-orange-400' : 'text-green-400'
-                          }`}>
-                            {yearGroup.fiscalYear}
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-black ${
+                              yearGroup.isExpired ? 'text-red-400'
+                                : yearGroup.expiresIn !== undefined ? 'text-orange-400'
+                                : yearGroup.isCurrentPeriod ? 'text-blue-400'
+                                : 'text-green-400'
+                            }`}>
+                              {yearGroup.period}
+                            </span>
+                            <span className="text-xs text-white/40">({yearGroup.dates.length}日消化)</span>
+                          </div>
+                          <span className="text-[9px] text-white/30">
+                            {yearGroup.periodStart} 〜 {yearGroup.periodEnd}
                           </span>
-                          <span className="text-xs text-white/40">({yearGroup.dates.length}日)</span>
                         </div>
                         {yearGroup.isExpired ? (
                           <span className="text-[10px] font-bold text-red-400 bg-red-500/20 px-2 py-0.5 rounded">時効済</span>
                         ) : yearGroup.expiresIn !== undefined ? (
                           <span className="text-[10px] font-bold text-orange-400 bg-orange-500/20 px-2 py-0.5 rounded">
-                            あと{yearGroup.expiresIn}ヶ月で時効
+                            あと{yearGroup.expiresIn}ヶ月
                           </span>
+                        ) : yearGroup.isCurrentPeriod ? (
+                          <span className="text-[10px] font-bold text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded">現在</span>
                         ) : (
                           <span className="text-[10px] font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded">有効</span>
                         )}
@@ -359,11 +415,11 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                     </div>
                   ))}
 
-                  {/* 2年ルール説明 */}
+                  {/* Regla de consumo */}
                   <div className="mt-4 p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
                     <p className="text-[10px] text-white/60 leading-relaxed">
-                      <span className="text-indigo-400 font-bold">日本労働基準法:</span> 有給休暇は付与日から2年間有効。
-                      3年目に入ると古い分から時効消滅します。
+                      <span className="text-indigo-400 font-bold">消化ルール:</span> 新しい付与分から優先消化。
+                      付与から2年経過で時効消滅。
                     </p>
                   </div>
                 </div>

@@ -8,6 +8,55 @@ interface LeaveRequestProps {
   onSuccess: () => void;
 }
 
+// Categorizar fechas por año fiscal (Abril - Marzo)
+interface YearGroup {
+  fiscalYear: string;
+  dates: string[];
+  isExpired: boolean;
+  expiresIn?: number; // meses hasta expirar
+}
+
+const categorizeDatesByFiscalYear = (dates: string[]): YearGroup[] => {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  // Año fiscal actual (si estamos en Ene-Mar, pertenecemos al año fiscal anterior)
+  const currentFiscalYear = currentMonth >= 4 ? currentYear : currentYear - 1;
+
+  const yearGroups: Map<number, string[]> = new Map();
+
+  dates.forEach(dateStr => {
+    const date = new Date(dateStr);
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    // Determinar año fiscal de esta fecha
+    const fiscalYear = month >= 4 ? year : year - 1;
+
+    if (!yearGroups.has(fiscalYear)) {
+      yearGroups.set(fiscalYear, []);
+    }
+    yearGroups.get(fiscalYear)!.push(dateStr);
+  });
+
+  const result: YearGroup[] = [];
+  const sortedYears = Array.from(yearGroups.keys()).sort((a, b) => b - a);
+
+  sortedYears.forEach(fiscalYear => {
+    const dates = yearGroups.get(fiscalYear)!.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    const yearDiff = currentFiscalYear - fiscalYear;
+
+    result.push({
+      fiscalYear: `${fiscalYear}年度`,
+      dates,
+      isExpired: yearDiff >= 2, // 2年以上前は時効
+      expiresIn: yearDiff === 1 ? 12 - (currentMonth >= 4 ? currentMonth - 4 : currentMonth + 8) : undefined
+    });
+  });
+
+  return result;
+};
+
 const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
   const [selectedClient, setSelectedClient] = useState('');
   const [formData, setFormData] = useState({
@@ -34,24 +83,49 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
     return data.employees.find(e => e.id === formData.employeeId);
   }, [formData.employeeId, data.employees]);
 
+  // Combinar yukyuDates del Excel + records de la app
+  const allLeaveHistory = useMemo(() => {
+    if (!selectedEmployee) return [];
+
+    // Fechas del Excel (yukyuDates)
+    const excelDates = selectedEmployee.yukyuDates || [];
+
+    // Fechas de records de la app
+    const appDates = data.records
+      .filter(r => r.employeeId === selectedEmployee.id && r.type === 'paid')
+      .map(r => r.date);
+
+    // Combinar y eliminar duplicados
+    const allDates = [...new Set([...excelDates, ...appDates])];
+    return allDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  }, [selectedEmployee, data.records]);
+
+  // Agrupar por año fiscal
+  const historyByYear = useMemo(() => {
+    return categorizeDatesByFiscalYear(allLeaveHistory);
+  }, [allLeaveHistory]);
+
   // Analyze usage over the last 2 years from records
   const analysis = useMemo(() => {
-    if (!formData.employeeId) return { twoYearUsage: 0, recentlyUsed: 0 };
-    
+    if (!formData.employeeId) return { twoYearUsage: 0, recentlyUsed: 0, totalHistory: 0 };
+
     const now = new Date();
     const twoYearsAgo = new Date();
     twoYearsAgo.setFullYear(now.getFullYear() - 2);
-    
+
     const last30Days = new Date();
     last30Days.setDate(now.getDate() - 30);
 
-    const employeeRecords = data.records.filter(r => r.employeeId === formData.employeeId && r.type === 'paid');
-    
+    // Contar desde allLeaveHistory
+    const validDates = allLeaveHistory.filter(d => new Date(d) >= twoYearsAgo);
+    const recentDates = allLeaveHistory.filter(d => new Date(d) >= last30Days);
+
     return {
-      twoYearUsage: employeeRecords.filter(r => new Date(r.date) >= twoYearsAgo).length,
-      recentlyUsed: employeeRecords.filter(r => new Date(r.date) >= last30Days).length,
+      twoYearUsage: validDates.length,
+      recentlyUsed: recentDates.length,
+      totalHistory: allLeaveHistory.length
     };
-  }, [formData.employeeId, data.records]);
+  }, [formData.employeeId, allLeaveHistory]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,74 +242,147 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
           </form>
         </div>
 
-        {/* Right: Analysis & Summary Card */}
+        {/* Right: Analysis & Summary Card + History */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="glass p-8 rounded-3xl relative overflow-hidden group">
+          {/* Employee Summary Card */}
+          <div className="glass p-6 rounded-3xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl group-hover:bg-indigo-500/10 transition-all"></div>
-            
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <span className="text-2xl">📋</span> 従業員詳細
+
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <span className="text-xl">📋</span> 従業員詳細
             </h3>
 
             {selectedEmployee ? (
-              <div className="space-y-8">
-                <div className="flex justify-between items-end border-b border-white/5 pb-6">
+              <div className="space-y-4">
+                <div className="flex justify-between items-end border-b border-white/5 pb-4">
                   <div>
-                    <p className="text-xs text-white/40 uppercase tracking-widest font-bold mb-1">Employee Info</p>
-                    <h4 className="text-2xl font-bold">{selectedEmployee.name}</h4>
-                    <p className="text-indigo-400 font-medium">{selectedEmployee.client} / №{selectedEmployee.id}</p>
+                    <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Employee</p>
+                    <h4 className="text-xl font-bold">{selectedEmployee.name}</h4>
+                    <p className="text-indigo-400 text-sm font-medium">{selectedEmployee.client} / №{selectedEmployee.id}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-white/40 font-bold mb-1 uppercase">Current Balance</p>
-                    <div className="text-5xl font-black gradient-text">{selectedEmployee.balance}<span className="text-lg ml-1 text-white">日</span></div>
+                    <p className="text-[10px] text-white/40 font-bold mb-1 uppercase">残高</p>
+                    <div className="text-4xl font-black gradient-text">{selectedEmployee.balance}<span className="text-sm ml-1 text-white">日</span></div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <p className="text-[10px] text-white/40 font-bold uppercase mb-1">Total Granted</p>
-                    <p className="text-xl font-bold">{selectedEmployee.grantedTotal}日</p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                    <p className="text-[9px] text-white/40 font-bold uppercase">付与</p>
+                    <p className="text-lg font-bold text-green-400">{selectedEmployee.grantedTotal}</p>
                   </div>
-                  <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <p className="text-[10px] text-white/40 font-bold uppercase mb-1">Total Used</p>
-                    <p className="text-xl font-bold text-pink-400">{selectedEmployee.usedTotal}日</p>
+                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                    <p className="text-[9px] text-white/40 font-bold uppercase">消化</p>
+                    <p className="text-lg font-bold text-pink-400">{selectedEmployee.usedTotal}</p>
                   </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h5 className="text-sm font-bold text-white/60">直近2年間の有給消化状況</h5>
-                  <div className="relative h-4 bg-white/5 rounded-full overflow-hidden">
-                    <div 
-                      className="absolute left-0 top-0 h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000"
-                      style={{ width: `${Math.min((analysis.twoYearUsage / 20) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-white/40">2年間の消化実績</span>
-                    <span className="text-indigo-400">{analysis.twoYearUsage}日</span>
-                  </div>
-                  
-                  <div className="bg-indigo-500/10 p-4 rounded-2xl border border-indigo-500/20">
-                    <p className="text-xs text-white/80 leading-relaxed italic">
-                      "新しい付与分から順に消化"のルールに基づき、{selectedEmployee.name}さんの最新の有給分から消費されます。時効（{selectedEmployee.expiredCount}日）の発生にご注意ください。
-                    </p>
+                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                    <p className="text-[9px] text-white/40 font-bold uppercase">時効</p>
+                    <p className="text-lg font-bold text-orange-400">{selectedEmployee.expiredCount}</p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="py-20 text-center space-y-4">
-                <div className="text-6xl opacity-10">👤</div>
-                <p className="text-white/20 font-medium italic">
-                  従業員を選択すると<br />詳細データが表示されます
+              <div className="py-12 text-center space-y-3">
+                <div className="text-5xl opacity-10">👤</div>
+                <p className="text-white/20 text-sm font-medium italic">
+                  従業員を選択してください
                 </p>
               </div>
             )}
           </div>
 
+          {/* Leave History Table - 有給取得履歴 */}
           <div className="glass p-6 rounded-3xl">
-            <h4 className="text-sm font-bold text-white/60 mb-4 flex items-center gap-2">
-              <span className="text-indigo-400">●</span> 今月の申請状況 (全体)
-            </h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-bold flex items-center gap-2">
+                <span className="text-xl">📅</span> 有給取得履歴
+              </h4>
+              {selectedEmployee && allLeaveHistory.length > 0 && (
+                <span className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded-full font-bold">
+                  計 {allLeaveHistory.length} 日
+                </span>
+              )}
+            </div>
+
+            {selectedEmployee ? (
+              allLeaveHistory.length > 0 ? (
+                <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                  {historyByYear.map((yearGroup, idx) => (
+                    <div key={yearGroup.fiscalYear} className="space-y-2">
+                      {/* Year Header */}
+                      <div className={`flex items-center justify-between py-2 px-3 rounded-lg ${
+                        yearGroup.isExpired
+                          ? 'bg-red-500/10 border border-red-500/20'
+                          : yearGroup.expiresIn !== undefined
+                            ? 'bg-orange-500/10 border border-orange-500/20'
+                            : 'bg-green-500/10 border border-green-500/20'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-black ${
+                            yearGroup.isExpired ? 'text-red-400' : yearGroup.expiresIn !== undefined ? 'text-orange-400' : 'text-green-400'
+                          }`}>
+                            {yearGroup.fiscalYear}
+                          </span>
+                          <span className="text-xs text-white/40">({yearGroup.dates.length}日)</span>
+                        </div>
+                        {yearGroup.isExpired ? (
+                          <span className="text-[10px] font-bold text-red-400 bg-red-500/20 px-2 py-0.5 rounded">時効済</span>
+                        ) : yearGroup.expiresIn !== undefined ? (
+                          <span className="text-[10px] font-bold text-orange-400 bg-orange-500/20 px-2 py-0.5 rounded">
+                            あと{yearGroup.expiresIn}ヶ月で時効
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded">有効</span>
+                        )}
+                      </div>
+
+                      {/* Dates Grid */}
+                      <div className="grid grid-cols-3 gap-1 pl-2">
+                        {yearGroup.dates.slice(0, 12).map((date, i) => (
+                          <div
+                            key={`${date}-${i}`}
+                            className={`text-[11px] font-mono py-1.5 px-2 rounded text-center ${
+                              yearGroup.isExpired
+                                ? 'bg-red-500/5 text-red-400/60 line-through'
+                                : 'bg-white/5 text-white/80'
+                            }`}
+                          >
+                            {new Date(date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
+                          </div>
+                        ))}
+                        {yearGroup.dates.length > 12 && (
+                          <div className="text-[10px] text-white/30 py-1.5 px-2 text-center">
+                            +{yearGroup.dates.length - 12}件
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* 2年ルール説明 */}
+                  <div className="mt-4 p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
+                    <p className="text-[10px] text-white/60 leading-relaxed">
+                      <span className="text-indigo-400 font-bold">日本労働基準法:</span> 有給休暇は付与日から2年間有効。
+                      3年目に入ると古い分から時効消滅します。
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-8 text-center space-y-2">
+                  <div className="text-3xl opacity-20">📭</div>
+                  <p className="text-white/30 text-sm">取得履歴なし</p>
+                  <p className="text-white/20 text-xs">有給休暇管理.xlsmを同期してください</p>
+                </div>
+              )
+            ) : (
+              <div className="py-8 text-center">
+                <p className="text-white/20 text-sm italic">従業員選択後に表示</p>
+              </div>
+            )}
+          </div>
+
+          {/* Monthly Stats */}
+          <div className="glass p-4 rounded-2xl">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-pink-500/20 rounded-xl flex items-center justify-center text-pink-400 text-xl font-bold">
                 {data.records.filter(r => {
@@ -245,7 +392,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                 }).length}
               </div>
               <div className="text-xs text-white/40 leading-tight">
-                全社員の今月の申請件数です。<br />Excel同期後、リアルタイムで反映されます。
+                今月の申請件数（全社員）
               </div>
             </div>
           </div>

@@ -73,7 +73,8 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
   };
 
   const handleBulkApprove = () => {
-    const pendingSelected = Array.from(selectedIds).filter(id => {
+    const allSelected = Array.from(selectedIds) as string[];
+    const pendingSelected = allSelected.filter(id => {
       const record = data.records.find(r => r.id === id);
       return record?.status === 'pending';
     });
@@ -92,7 +93,8 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
   };
 
   const handleBulkReject = () => {
-    const pendingSelected = Array.from(selectedIds).filter(id => {
+    const allSelected = Array.from(selectedIds) as string[];
+    const pendingSelected = allSelected.filter(id => {
       const record = data.records.find(r => r.id === id);
       return record?.status === 'pending';
     });

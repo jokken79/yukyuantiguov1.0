@@ -10,24 +10,62 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,800;0,900;1,800;1,900&family=Noto+Sans+JP:wght@700;900&display=swap" rel="stylesheet">
     <style>
-        :root {
+        /* Dark Theme (Default) */
+        :root, [data-theme="dark"] {
             --neon-blue: #00e5ff;
             --neon-red: #ff004c;
             --deep-black: #050505;
+            --bg-primary: #050505;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #111111;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-hover: rgba(255, 255, 255, 0.2);
+            --glass-bg: rgba(10, 10, 10, 0.85);
+            --accent-yellow: #eab308;
+            --accent-green: #22c55e;
+            --accent-blue: #3b82f6;
+            --shadow-color: rgba(0, 0, 0, 0.9);
         }
+
+        /* Light Theme */
+        [data-theme="light"] {
+            --neon-blue: #0077b6;
+            --neon-red: #dc2626;
+            --deep-black: #f8fafc;
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: rgba(15, 23, 42, 0.7);
+            --text-muted: rgba(15, 23, 42, 0.5);
+            --border-color: rgba(15, 23, 42, 0.1);
+            --border-hover: rgba(15, 23, 42, 0.2);
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --accent-yellow: #ca8a04;
+            --accent-green: #16a34a;
+            --accent-blue: #2563eb;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
         body {
             font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
-            background: var(--deep-black);
-            color: #ffffff;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+
         /* Nanobanana Extreme UI */
         .cyber-glass {
-            background: rgba(10, 10, 10, 0.85);
+            background: var(--glass-bg);
             backdrop-filter: blur(50px) saturate(250%);
             -webkit-backdrop-filter: blur(50px) saturate(250%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 40px var(--shadow-color);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         .sharp-panel {
             clip-path: polygon(0% 0%, 100% 0%, 98% 100%, 0% 100%);
@@ -36,19 +74,27 @@
             text-transform: uppercase;
             font-style: italic;
             letter-spacing: -0.05em;
-            background: linear-gradient(135deg, #fff 40%, rgba(255,255,255,0.4));
+            background: linear-gradient(135deg, var(--text-primary) 40%, var(--text-secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        /* Lightning Background */
+        /* Lightning Background - Dark Mode */
         .bg-lightning {
             position: fixed;
             inset: 0;
             z-index: -1;
-            background: 
+            background:
                 radial-gradient(circle at 10% 10%, rgba(0, 229, 255, 0.1) 0%, transparent 40%),
                 radial-gradient(circle at 90% 90%, rgba(255, 0, 76, 0.1) 0%, transparent 40%),
                 conic-gradient(from 180deg at 50% 50%, #000, #050505, #000);
+            transition: opacity 0.3s ease;
+        }
+        /* Hide lightning bg in light mode */
+        [data-theme="light"] .bg-lightning {
+            background:
+                radial-gradient(circle at 10% 10%, rgba(0, 119, 182, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(220, 38, 38, 0.05) 0%, transparent 40%),
+                linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
         }
         .scanline {
             position: fixed;
@@ -58,6 +104,9 @@
             pointer-events: none;
             z-index: 100;
             opacity: 0.1;
+        }
+        [data-theme="light"] .scanline {
+            opacity: 0;
         }
         @keyframes glitch {
             0% { transform: translate(0); }
@@ -70,6 +119,18 @@
         .glitch-hover:hover {
             animation: glitch 0.2s infinite;
         }
+        [data-theme="light"] .glitch-hover:hover {
+            animation: none;
+        }
+
+        /* Theme-aware utility classes */
+        .theme-bg-primary { background-color: var(--bg-primary); }
+        .theme-bg-secondary { background-color: var(--bg-secondary); }
+        .theme-bg-tertiary { background-color: var(--bg-tertiary); }
+        .theme-text-primary { color: var(--text-primary); }
+        .theme-text-secondary { color: var(--text-secondary); }
+        .theme-text-muted { color: var(--text-muted); }
+        .theme-border { border-color: var(--border-color); }
     </style>
 <script type="importmap">
 {

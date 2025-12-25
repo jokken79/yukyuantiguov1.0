@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { useTheme } from '../contexts/ThemeContext';
+import ThemeToggle from './ThemeToggle';
 
 interface SidebarProps {
   activeTab: string;
@@ -7,34 +9,40 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+  const { isDark } = useTheme();
   const tabs = [
     { id: 'dashboard', icon: 'M13 10V3L4 14h7v7l9-11h-7z', label: '有給分析コア' },
     { id: 'employees', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197', label: '従業員リスト' },
-    { id: 'reports', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', label: '経理レポート' },
     { id: 'request', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', label: '迅速申請' },
+    { id: 'applications', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', label: '申請管理' },
+    { id: 'reports', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', label: '経理レポート' },
     { id: 'sync', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', label: 'データ同期' },
   ];
 
   return (
-    <div className="w-80 h-full cyber-glass flex flex-col z-50 border-r border-white/5 relative">
+    <div className={`w-80 h-full cyber-glass flex flex-col z-50 border-r relative ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
       {/* Intense Brand Section */}
       <div className="p-10">
-        <div className="relative group overflow-hidden bg-black rounded-3xl p-8 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,1)] glitch-hover">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-red-600 blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-          
+        <div className={`relative group overflow-hidden rounded-3xl p-8 border glitch-hover transition-all duration-300 ${
+          isDark
+            ? 'bg-black border-white/10 shadow-[0_0_50px_rgba(0,0,0,1)]'
+            : 'bg-white border-slate-200 shadow-lg'
+        }`}>
+          <div className={`absolute -inset-1 bg-gradient-to-r from-blue-600 to-red-600 blur transition duration-1000 group-hover:duration-200 ${isDark ? 'opacity-25 group-hover:opacity-100' : 'opacity-10 group-hover:opacity-30'}`}></div>
+
           <div className="relative flex flex-col items-center">
             <div className="flex items-center justify-center gap-0">
-              <span className="text-7xl font-black italic tracking-tighter leading-none text-white drop-shadow-[0_0_15px_rgba(0,229,255,0.8)] transform -skew-x-12">U</span>
-              <div className="h-16 w-1 bg-white mx-2 rotate-12"></div>
-              <span className="text-7xl font-black italic tracking-tighter leading-none text-white drop-shadow-[0_0_15px_rgba(255,0,76,0.8)] transform -skew-x-12">N</span>
-              <div className="h-16 w-1 bg-white mx-2 rotate-12"></div>
-              <span className="text-7xl font-black italic tracking-tighter leading-none text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] transform -skew-x-12">S</span>
+              <span className={`text-7xl font-black italic tracking-tighter leading-none transform -skew-x-12 ${isDark ? 'text-white drop-shadow-[0_0_15px_rgba(0,229,255,0.8)]' : 'text-blue-600 drop-shadow-[0_0_10px_rgba(37,99,235,0.4)]'}`}>U</span>
+              <div className={`h-16 w-1 mx-2 rotate-12 ${isDark ? 'bg-white' : 'bg-slate-300'}`}></div>
+              <span className={`text-7xl font-black italic tracking-tighter leading-none transform -skew-x-12 ${isDark ? 'text-white drop-shadow-[0_0_15px_rgba(255,0,76,0.8)]' : 'text-red-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.4)]'}`}>N</span>
+              <div className={`h-16 w-1 mx-2 rotate-12 ${isDark ? 'bg-white' : 'bg-slate-300'}`}></div>
+              <span className={`text-7xl font-black italic tracking-tighter leading-none transform -skew-x-12 ${isDark ? 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]' : 'text-slate-800 drop-shadow-[0_0_10px_rgba(0,0,0,0.2)]'}`}>S</span>
             </div>
-            
+
             <div className="mt-8 flex flex-col items-center">
-              <div className="text-[10px] font-black tracking-[0.5em] text-white/40 mb-1">ユニバーサル企画</div>
+              <div className={`text-[10px] font-black tracking-[0.5em] mb-1 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>ユニバーサル企画</div>
               <div className="h-0.5 w-full bg-gradient-to-r from-blue-500 via-white to-red-500"></div>
-              <div className="text-lg font-black italic tracking-tighter mt-2 text-white">有給PRO V1.0</div>
+              <div className={`text-lg font-black italic tracking-tighter mt-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>有給PRO V1.0</div>
             </div>
           </div>
         </div>
@@ -46,14 +54,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`w-full group flex items-center gap-6 px-6 py-4 rounded-2xl transition-all duration-300 relative ${
-              activeTab === tab.id ? 'text-white translate-x-2' : 'text-white/30 hover:text-white/70'
+              activeTab === tab.id
+                ? isDark ? 'text-white translate-x-2' : 'text-slate-800 translate-x-2'
+                : isDark ? 'text-white/30 hover:text-white/70' : 'text-slate-400 hover:text-slate-700'
             }`}
           >
             {activeTab === tab.id && (
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/30 to-transparent border-l-4 border-blue-500 animate-pulse"></div>
+              <div className={`absolute inset-0 border-l-4 border-blue-500 animate-pulse ${isDark ? 'bg-gradient-to-r from-blue-600/30 to-transparent' : 'bg-gradient-to-r from-blue-100 to-transparent'}`}></div>
             )}
-            <svg 
-              className={`w-6 h-6 transition-transform duration-500 ${activeTab === tab.id ? 'stroke-blue-400 scale-125' : 'stroke-current group-hover:scale-110'}`} 
+            <svg
+              className={`w-6 h-6 transition-transform duration-500 ${activeTab === tab.id ? 'stroke-blue-500 scale-125' : 'stroke-current group-hover:scale-110'}`}
               fill="none" viewBox="0 0 24 24" strokeWidth="2.5"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
@@ -63,15 +73,29 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         ))}
       </nav>
 
-      <div className="p-8">
-        <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 relative overflow-hidden group">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-1 h-6 bg-red-600"></div>
-            <span className="text-[10px] font-black text-white/40 tracking-[0.2em]">システム状態</span>
+      <div className="p-4 space-y-4">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
+        {/* System Status */}
+        <div className={`p-4 rounded-xl border relative overflow-hidden group ${
+          isDark
+            ? 'bg-white/[0.02] border-white/5'
+            : 'bg-slate-50 border-slate-200'
+        }`}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-1 h-5 bg-green-500"></div>
+            <span className={`text-[9px] font-bold tracking-[0.2em] uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>システム状態</span>
           </div>
-          <div className="text-xs font-black text-white italic tracking-tighter">
-            エンジン: 稼働中<br/>
-            AI分析: オンライン
+          <div className={`text-xs font-bold italic tracking-tight ${isDark ? 'text-white' : 'text-slate-700'}`}>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              <span>エンジン: 稼働中</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+              <span>AI分析: オンライン</span>
+            </div>
           </div>
         </div>
       </div>

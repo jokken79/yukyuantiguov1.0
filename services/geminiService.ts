@@ -2,10 +2,28 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppData, AIInsight } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy initialization to avoid crash when API key is not set
+let ai: GoogleGenAI | null = null;
+
+const getAI = (): GoogleGenAI | null => {
+  if (ai) return ai;
+  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  ai = new GoogleGenAI({ apiKey });
+  return ai;
+};
 
 export const analyzeLeaveData = async (data: AppData): Promise<AIInsight[]> => {
   if (data.employees.length === 0) return [];
+
+  const aiClient = getAI();
+  if (!aiClient) {
+    return [{
+      title: "AI分析未設定",
+      description: "GEMINI_API_KEYが設定されていません。Vercel環境変数を確認してください。",
+      type: "info"
+    }];
+  }
 
   const riskEmployees = data.employees.filter(e => e.status === '在職中' && e.grantedTotal >= 10 && e.usedTotal < 5);
 
@@ -28,7 +46,7 @@ export const analyzeLeaveData = async (data: AppData): Promise<AIInsight[]> => {
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await aiClient.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {

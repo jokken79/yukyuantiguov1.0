@@ -19,31 +19,69 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const [loadingAI, setLoadingAI] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
 
-  // 1. 月別使用推移データの生成 (承認済みのみ)
+  // 1. 月別使用推移データの生成 (承認済み + Excel importado)
   const monthlyTrendData = useMemo(() => {
     const months = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
     const counts = new Array(12).fill(0);
+
+    // Contar desde records (solicitudes aprobadas)
     data.records.forEach(r => {
       if (r.type === 'paid' && r.status === 'approved') {
         const m = new Date(r.date).getMonth();
         counts[m]++;
       }
     });
-    return months.map((name, i) => ({ name, value: counts[i] }));
-  }, [data.records]);
 
-  // 2. 曜日別取得パターンの生成 (承認済みのみ)
+    // También contar desde yukyuDates de empleados (datos importados de Excel)
+    data.employees.forEach(emp => {
+      if (emp.yukyuDates && emp.yukyuDates.length > 0) {
+        emp.yukyuDates.forEach(dateStr => {
+          try {
+            const m = new Date(dateStr).getMonth();
+            if (!isNaN(m)) {
+              counts[m]++;
+            }
+          } catch (e) {
+            // Ignorar fechas inválidas
+          }
+        });
+      }
+    });
+
+    return months.map((name, i) => ({ name, value: counts[i] }));
+  }, [data.records, data.employees]);
+
+  // 2. 曜日別取得パターンの生成 (承認済み + Excel importado)
   const dayOfWeekData = useMemo(() => {
     const days = ["日", "月", "火", "水", "木", "金", "土"];
     const counts = new Array(7).fill(0);
+
+    // Contar desde records (solicitudes aprobadas)
     data.records.forEach(r => {
       if (r.type === 'paid' && r.status === 'approved') {
         const d = new Date(r.date).getDay();
         counts[d]++;
       }
     });
+
+    // También contar desde yukyuDates de empleados (datos importados de Excel)
+    data.employees.forEach(emp => {
+      if (emp.yukyuDates && emp.yukyuDates.length > 0) {
+        emp.yukyuDates.forEach(dateStr => {
+          try {
+            const d = new Date(dateStr).getDay();
+            if (!isNaN(d)) {
+              counts[d]++;
+            }
+          } catch (e) {
+            // Ignorar fechas inválidas
+          }
+        });
+      }
+    });
+
     return days.map((name, i) => ({ name, value: counts[i] })).filter((_, i) => i !== 0 && i !== 6); // 平日のみ
-  }, [data.records]);
+  }, [data.records, data.employees]);
 
   // Filter active employees for accurate analytics
   const activeEmployees = useMemo(() => {

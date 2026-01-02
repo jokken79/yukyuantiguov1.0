@@ -2,6 +2,7 @@
 import { Employee } from '../types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { sanitizeValue } from '../utils/csvSanitizer';
 
 export const exportEmployeesToCSV = (employees: Employee[]) => {
   if (employees.length === 0) {
@@ -24,7 +25,9 @@ export const exportEmployeesToCSV = (employees: Employee[]) => {
 
   let csvContent = headers.join(',') + '\n';
   rows.forEach(row => {
-    csvContent += row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',') + '\n';
+    // ⭐ NUEVO: Sanitizar cada celda para prevenir CSV formula injection (BUG #6)
+    const sanitizedRow = row.map(val => sanitizeValue(val));
+    csvContent += sanitizedRow.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',') + '\n';
   });
 
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });

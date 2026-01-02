@@ -118,6 +118,10 @@ const processDaicho = (
       const statusRaw = findValue(row, ['現在', '在職中', '状態', 'ステータス', 'Status']);
       const status = normalizeStatus(statusRaw);
 
+      // ⭐ NUEVO: Leer 入社日 del DAICHO
+      const entryDateRaw = findValue(row, ['入社日', '入社', '入社年月日']);
+      const entryDate = entryDateRaw ? excelDateToISO(entryDateRaw) : undefined;
+
       // Contar por estado
       if (status === '退社') {
         resignedCount++;
@@ -140,6 +144,7 @@ const processDaicho = (
           client: client ? String(client) : emp.client,
           category: category,
           status: status,
+          entryDate: entryDate || emp.entryDate, // ⭐ Actualizar entryDate si existe
           lastSync: new Date().toISOString()
         };
       } else {
@@ -149,6 +154,7 @@ const processDaicho = (
           nameKana: correctedKana,
           client: client ? String(client) : '未設定',
           category: category,
+          entryDate: entryDate, // ⭐ Agregar entryDate para empleados nuevos
           grantedTotal: 0,
           usedTotal: 0,
           balance: 0,
@@ -441,6 +447,7 @@ const processYukyu = (
         console.log(summary);
       }
     } else {
+      // ⭐ Crear nuevo empleado con todos los campos (incluidos los nuevos)
       existingEmployees.push({
         id,
         name: name ? String(name) : '未設定',
@@ -451,12 +458,29 @@ const processYukyu = (
         elapsedTime: elapsedTime ? String(elapsedTime) : undefined,
         elapsedMonths,
         yukyuStartDate,
-        grantedTotal,
+
+        // ⭐ NUEVO: Historial completo de períodos
+        periodHistory: periodHistory.length > 0 ? periodHistory : undefined,
+
+        // ⭐ NUEVO: Valores ACTUALES (solo períodos vigentes)
+        currentGrantedTotal: currentGrantedTotal || undefined,
+        currentUsedTotal: currentUsedTotal || undefined,
+        currentBalance: currentBalance || undefined,
+        currentExpiredCount: currentExpiredCount,
+
+        // ⭐ NUEVO: Valores HISTÓRICOS (todos los períodos)
+        historicalGrantedTotal: historicalGrantedTotal || undefined,
+        historicalUsedTotal: historicalUsedTotal || undefined,
+        historicalBalance: historicalBalance || undefined,
+        historicalExpiredCount: historicalExpiredCount || undefined,
+
+        // ⭐ LEGACY: Campos para backward compatibility
+        grantedTotal: currentGrantedTotal || undefined,
         carryOver,
         totalAvailable,
-        usedTotal,
-        balance,
-        expiredCount,
+        usedTotal: historicalUsedTotal || undefined,
+        balance: currentBalance || undefined,
+        expiredCount: historicalExpiredCount || undefined,
         remainingAfterExpiry,
         yukyuDates: uniqueYukyuDates.length > 0 ? uniqueYukyuDates : undefined,
         status: status,

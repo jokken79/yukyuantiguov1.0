@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { AppData, Employee, LeaveRecord } from '../types';
 import { exportToPDF } from '../services/exportService';
 import { useTheme } from '../contexts/ThemeContext';
+import { getDisplayName } from '../services/nameConverter';
 
 interface AccountingReportsProps {
   data: AppData;
@@ -150,7 +151,7 @@ const AccountingReports: React.FC<AccountingReportsProps> = ({ data }) => {
                   <tr key={emp.id} className={`group transition-all ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-slate-50'}`}>
                     <td className={`py-8 px-4 font-black text-xs italic ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{emp.client}</td>
                     <td className="py-8 px-4 font-black text-sm tracking-widest text-blue-500">#{emp.id}</td>
-                    <td className={`py-8 px-4 font-black text-xl italic group-hover:translate-x-1 transition-transform ${isDark ? 'text-white' : 'text-slate-800'}`}>{emp.name}</td>
+                    <td className={`py-8 px-4 font-black text-xl italic group-hover:translate-x-1 transition-transform ${isDark ? 'text-white' : 'text-slate-800'}`}>{getDisplayName(emp.name)}</td>
                     <td className="py-8 px-4 text-center">
                       <div className="flex flex-wrap justify-center gap-2">
                         {days.map(d => (

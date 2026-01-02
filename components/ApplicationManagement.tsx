@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { AppData, LeaveRecord } from '../types';
 import { db } from '../services/db';
 import { useTheme } from '../contexts/ThemeContext';
+import { getDisplayName } from '../services/nameConverter';
 
 interface ApplicationManagementProps {
   data: AppData;
@@ -181,7 +182,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
         r.createdAt.split('T')[0],
         r.date,
         r.employeeId,
-        emp?.name || '不明',
+        emp ? getDisplayName(emp.name) : '不明',
         emp?.client || '不明',
         r.type === 'paid' ? '有給' : r.type === 'special' ? '特別休暇' : '欠勤',
         r.status === 'pending' ? '保留中' : r.status === 'approved' ? '承認済' : '却下',
@@ -381,7 +382,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                       <td className="p-3 md:p-4">{getStatusBadge(record.status)}</td>
                       <td className={`p-3 md:p-4 font-bold text-sm md:text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{record.date}</td>
                       <td className="p-3 md:p-4">
-                        <div className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>{emp?.name || '不明'}</div>
+                        <div className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>{emp ? getDisplayName(emp.name) : '不明'}</div>
                         <div className={`text-[10px] md:text-xs ${isDark ? 'text-white/40' : 'text-slate-500'}`}>№{record.employeeId}</div>
                         <div className={`text-[10px] md:hidden ${isDark ? 'text-white/30' : 'text-slate-400'}`}>{emp?.client || ''}</div>
                       </td>

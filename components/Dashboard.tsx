@@ -8,6 +8,7 @@ import { AppData, AIInsight, Employee } from '../types';
 import { analyzeLeaveData } from '../services/geminiService';
 import { exportEmployeesToCSV, exportToPDF } from '../services/exportService';
 import { useTheme } from '../contexts/ThemeContext';
+import { getDisplayName } from '../services/nameConverter';
 
 interface DashboardProps {
   data: AppData;
@@ -351,7 +352,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <p className={`text-sm font-black truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                            {emp.name}
+                            {getDisplayName(emp.name)}
                           </p>
                           <p className={`text-[10px] truncate ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
                             {emp.client} / №{emp.id}

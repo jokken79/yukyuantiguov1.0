@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { AppData, Employee } from '../types';
 import { db } from '../services/db';
 import { useTheme } from '../contexts/ThemeContext';
+import { getDisplayName } from '../services/nameConverter';
 
 interface LeaveRequestProps {
   data: AppData;
@@ -299,7 +300,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                     {selectedClient ? '従業員を選択' : '先に工場を選択'}
                   </option>
                   {filteredEmployees.map(emp => (
-                    <option key={emp.id} value={emp.id} className={isDark ? 'bg-black' : 'bg-white'}>{emp.name} (№{emp.id})</option>
+                    <option key={emp.id} value={emp.id} className={isDark ? 'bg-black' : 'bg-white'}>{getDisplayName(emp.name)} (№{emp.id})</option>
                   ))}
                 </select>
               </div>

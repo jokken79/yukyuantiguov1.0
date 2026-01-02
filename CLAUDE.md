@@ -2,9 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Communication Rules
+
+**IMPORTANT**: Always communicate with the user in Spanish. All responses, explanations, questions, and documentation should be in Spanish, even though the codebase uses English for variable names and comments.
+
 ## Project Overview
 
 **Yukyu Pro** is a React-based leave management system for Japanese paid leave (有給休暇) compliance. It helps companies track whether employees with 10+ granted days take the legally required 5+ days annually (Labor Standards Act Article 39).
+
+**Tech Stack**: React 19 + TypeScript + Vite + Tailwind CSS (via CDN)
 
 ## Commands
 
@@ -24,12 +30,12 @@ Create `.env.local` in the project root:
 GEMINI_API_KEY=your_api_key_here
 ```
 
-The key is exposed via Vite's `define` config as `process.env.API_KEY` and `process.env.GEMINI_API_KEY`.
+**Important**: The Gemini API key is optional. The app handles missing keys gracefully by showing an info message instead of crashing. The key is exposed via Vite's `define` config as both `process.env.API_KEY` and `process.env.GEMINI_API_KEY`.
 
 ## Architecture
 
 ### Data Flow
-The app is fully client-side with localStorage persistence:
+The app is **fully client-side** with localStorage persistence:
 ```
 localStorage ("yukyu_pro_storage")
     → db.loadData() → AppData {employees[], records[], config}
@@ -37,7 +43,14 @@ localStorage ("yukyu_pro_storage")
     → UI rendering
 ```
 
-No backend API exists. External API: Google Gemini AI for compliance analysis.
+**Critical**: No backend API exists. All data is stored in browser localStorage. External API: Google Gemini AI for compliance analysis only.
+
+### State Management Pattern
+Components follow a **shared state refresh pattern**:
+- `App.tsx` holds the root `appData` state loaded from `db.loadData()`
+- Child components receive `data` prop and `onUpdate`/`onSyncComplete` callbacks
+- After mutations (approve, import, etc.), components call the callback which triggers `refreshData()` in App
+- `refreshData()` re-runs `db.loadData()` to sync with latest localStorage state
 
 ### Tab-Based Navigation
 Six main modules accessed via Sidebar:
@@ -49,8 +62,14 @@ Six main modules accessed via Sidebar:
 6. **ExcelSync** - Import data from two Excel file types
 
 ### Key Services (`/services`)
-- **db.ts** - localStorage CRUD wrapper, employee/record management
+- **db.ts** - localStorage CRUD wrapper with approval workflow methods
+  - `addRecord()` - Creates pending leave requests
+  - `approveRecord()`/`rejectRecord()` - Single approval actions, auto-updates employee balances
+  - `approveMultiple()`/`rejectMultiple()` - Bulk approval operations
+  - Auto-migration: Old records without status get `status: 'approved'` on load
 - **geminiService.ts** - Gemini AI integration for compliance analysis
+  - Lazy initialization pattern (doesn't crash if API key missing)
+  - Uses `gemini-3-flash-preview` model with JSON schema for structured insights
 - **exportService.ts** - CSV and PDF export utilities
 - **nameConverter.ts** - Romaji to Katakana conversion (supports Vietnamese, Portuguese names)
 
@@ -65,26 +84,44 @@ Six main modules accessed via Sidebar:
 Two file types with specific sheet requirements:
 
 **社員台帳 (Employee Registry)**
-- Required sheets: `DBGenzaiX`, `DBUkeoiX`, `DBStaffX`
-- Imports: employee ID, name, client, status
+- Required sheets: `DBGenzaiX` (派遣社員), `DBUkeoiX` (請負社員), `DBStaffX` (スタッフ)
+- Imports: employee ID (`社員№`), name, client (`派遣先`), status (`在職中`/`退社`)
+- Each sheet represents a different employee category
 
 **有給休暇管理 (Leave Management)**
-- Required sheets: `作業者データ　有給`, `請負`
-- Imports: all leave balance fields, up to 40 leave date columns
+- Required sheets: `作業者データ　有給` (派遣社員), `請負` (請負社員)
+- Imports: all leave balance fields (`付与数`, `消化日数`, `残高`, etc.)
+- **Critical**: Extracts up to 40 leave dates from columns named `"1"` to `"40"` (with or without trailing space)
+- Excel date conversion: `(excelDate - 25569) * 86400 * 1000`
 
-Files are merged by employee ID (`社員№`).
+**Import Logic**:
+- Files are merged by employee ID (`社員№`)
+- DAICHO creates/updates basic employee data
+- YUKYU enriches existing employees with leave balance fields
+- Toggle controls whether retired employees (`退社`) are imported
+- Sync status persisted in localStorage (`yukyu_sync_status`)
 
 ## Conventions
 
 - **Code language**: English for variables/functions
-- **UI language**: Japanese throughout
-- **Styling**: Tailwind CSS via CDN with glassmorphism effects
+- **UI language**: Japanese throughout (all user-facing text, error messages, labels)
+- **Styling**: Tailwind CSS via CDN with glassmorphism effects and noise texture overlay
 - **Theme**: Dark mode default, stored in localStorage (`uns-yukyu-theme`), respects system preference
 - **Path alias**: `@/*` resolves to project root
+- **Loading patterns**: Skeleton screens on initial load and tab switches (300-600ms delays)
 
 ## Key Business Logic
 
-Compliance calculation in Dashboard:
-- Employees with `grantedTotal >= 10` must take at least 5 days
+### Legal Compliance Calculation
+Dashboard identifies employees at legal risk:
+- Employees with `grantedTotal >= 10` AND `status === '在職中'` must take at least 5 days
 - `usedTotal < 5` triggers legal risk warning
-- Dashboard prominently displays at-risk employees with details
+- Dashboard prominently displays at-risk employees with specific deficit (`5 - usedTotal`)
+
+### Approval Workflow
+Leave requests follow a three-state lifecycle:
+1. **pending** - Newly created requests (via LeaveRequest tab)
+2. **approved** - Manager approved, employee balance auto-decremented
+3. **rejected** - Manager rejected, no balance impact
+
+**Important**: Only `pending` requests can be approved/rejected. Approved records cannot be deleted (data integrity protection).

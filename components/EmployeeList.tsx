@@ -187,8 +187,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
             <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
               {paginatedData.length > 0 ? (
                 paginatedData.map((emp) => {
-                  const isMandatoryTarget = emp.grantedTotal >= 10;
-                  const isCompliant = emp.usedTotal >= 5;
+                  const isMandatoryTarget = (emp.currentGrantedTotal ?? emp.grantedTotal) >= 10;
+                  const isCompliant = (emp.currentUsedTotal ?? emp.usedTotal) >= 5;
                   const displayName = getDisplayName(emp.name);
 
                   return (
@@ -198,18 +198,59 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                         <div className={`font-black text-base md:text-lg tracking-tight group-hover:translate-x-1 transition-transform ${isDark ? 'text-white' : 'text-slate-800'}`}>{displayName}</div>
                         <div className={`text-[9px] md:text-[10px] font-bold mt-1 tracking-widest ${isDark ? 'text-white/30' : 'text-slate-500'}`}>{emp.client}</div>
                       </td>
-                      <td className={`px-4 md:px-10 py-4 md:py-8 text-center font-black text-xs md:text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>{emp.grantedTotal}日</td>
-                      <td className="px-4 md:px-10 py-4 md:py-8 text-center">
-                        <span className={`font-black text-xs md:text-sm ${emp.usedTotal === 0 ? isDark ? 'text-white/20' : 'text-slate-300' : 'text-red-500'}`}>
-                          {emp.usedTotal}日
-                        </span>
+                      <td className={`px-4 md:px-10 py-4 md:py-8 text-center ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                        {emp.currentGrantedTotal !== undefined ? (
+                          <>
+                            <div className="font-black text-xs md:text-sm">{emp.currentGrantedTotal}日</div>
+                            {emp.historicalGrantedTotal !== emp.currentGrantedTotal && (
+                              <div className={`text-[9px] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                                (全期間: {emp.historicalGrantedTotal}日)
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="font-black text-xs md:text-sm">{emp.grantedTotal}日</div>
+                        )}
                       </td>
                       <td className="px-4 md:px-10 py-4 md:py-8 text-center">
-                        <div className={`inline-block px-3 md:px-5 py-1 md:py-2 border-2 font-black text-[10px] md:text-xs ${
-                          emp.balance < 5 ? 'border-red-600 text-red-600' : isDark ? 'border-white/10 text-white' : 'border-slate-200 text-slate-800'
-                        }`}>
-                          残{emp.balance}日
-                        </div>
+                        {emp.currentUsedTotal !== undefined ? (
+                          <>
+                            <div className={`font-black text-xs md:text-sm ${emp.currentUsedTotal === 0 ? isDark ? 'text-white/20' : 'text-slate-300' : 'text-red-500'}`}>
+                              {emp.currentUsedTotal}日
+                            </div>
+                            {emp.historicalUsedTotal !== emp.currentUsedTotal && (
+                              <div className={`text-[9px] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                                (全期間: {emp.historicalUsedTotal}日)
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <span className={`font-black text-xs md:text-sm ${emp.usedTotal === 0 ? isDark ? 'text-white/20' : 'text-slate-300' : 'text-red-500'}`}>
+                            {emp.usedTotal}日
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 md:px-10 py-4 md:py-8 text-center">
+                        {emp.currentBalance !== undefined ? (
+                          <div className="flex flex-col items-center">
+                            <div className={`inline-block px-3 md:px-5 py-1 md:py-2 border-2 font-black text-[10px] md:text-xs ${
+                              emp.currentBalance < 5 ? 'border-red-600 text-red-600' : isDark ? 'border-white/10 text-white' : 'border-slate-200 text-slate-800'
+                            }`}>
+                              残{emp.currentBalance}日
+                            </div>
+                            {emp.historicalBalance !== emp.currentBalance && (
+                              <div className={`text-[8px] mt-1 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                                (全: {emp.historicalBalance}日)
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className={`inline-block px-3 md:px-5 py-1 md:py-2 border-2 font-black text-[10px] md:text-xs ${
+                            emp.balance < 5 ? 'border-red-600 text-red-600' : isDark ? 'border-white/10 text-white' : 'border-slate-200 text-slate-800'
+                          }`}>
+                            残{emp.balance}日
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 md:px-10 py-4 md:py-8 text-center">
                         {isMandatoryTarget ? (

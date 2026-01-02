@@ -86,13 +86,16 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   // 4. トップユーザー (在職中のみ)
   const topUsers = useMemo(() => {
     return [...activeEmployees]
-      .sort((a, b) => b.usedTotal - a.usedTotal)
+      .sort((a, b) => (b.currentUsedTotal ?? b.usedTotal) - (a.currentUsedTotal ?? a.usedTotal))
       .slice(0, 10);
   }, [activeEmployees]);
 
   // 5. 法的リスクアラート (在職中で10日以上付与かつ5日未満消化)
   const legalAlerts = useMemo(() => {
-    return activeEmployees.filter(e => e.grantedTotal >= 10 && e.usedTotal < 5);
+    return activeEmployees.filter(e =>
+      (e.currentGrantedTotal ?? e.grantedTotal) >= 10 &&
+      (e.currentUsedTotal ?? e.usedTotal) < 5
+    );
   }, [activeEmployees]);
 
   const COLORS = ['#00e5ff', '#ff004c', '#7000ff', '#eab308', '#22c55e', '#ec4899'];
@@ -141,7 +144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const kpis = [
     { label: '有給対象', value: activeEmployees.length, suffix: '名', color: 'blue' },
     { label: '法的リスク', value: legalAlerts.length, suffix: '名', color: 'red' },
-    { label: '消化合計', value: activeEmployees.reduce((s, e) => s + e.usedTotal, 0), suffix: '日', color: 'white' },
+    { label: '消化合計', value: activeEmployees.reduce((s, e) => s + (e.currentUsedTotal ?? e.usedTotal), 0), suffix: '日', color: 'white' },
     { label: '遵守率', value: Math.round(((activeEmployees.length - legalAlerts.length) / (activeEmployees.length || 1)) * 100), suffix: '%', color: 'blue' },
   ];
 
@@ -335,12 +338,13 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
               {legalAlerts
-                .sort((a, b) => a.usedTotal - b.usedTotal) // 消化が少ない順
+                .sort((a, b) => (a.currentUsedTotal ?? a.usedTotal) - (b.currentUsedTotal ?? b.usedTotal)) // 消化が少ない順
                 .map((emp, i) => {
-                  const daysNeeded = 5 - emp.usedTotal;
-                  const urgencyClass = emp.usedTotal === 0
+                  const currentUsed = emp.currentUsedTotal ?? emp.usedTotal;
+                  const daysNeeded = 5 - currentUsed;
+                  const urgencyClass = currentUsed === 0
                     ? 'border-red-500 bg-red-500/10'
-                    : emp.usedTotal <= 2
+                    : currentUsed <= 2
                       ? 'border-orange-500 bg-orange-500/10'
                       : 'border-yellow-500 bg-yellow-500/10';
 
@@ -360,22 +364,32 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                         </div>
                         <div className="text-right flex-shrink-0">
                           <div className={`text-lg font-black ${
-                            emp.usedTotal === 0 ? 'text-red-500' : emp.usedTotal <= 2 ? 'text-orange-500' : 'text-yellow-500'
+                            currentUsed === 0 ? 'text-red-500' : currentUsed <= 2 ? 'text-orange-500' : 'text-yellow-500'
                           }`}>
-                            {emp.usedTotal}<span className="text-xs">日</span>
+                            {currentUsed}<span className="text-xs">日</span>
                           </div>
-                          <p className={`text-[9px] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>消化済</p>
+                          <p className={`text-[9px] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                            消化済
+                            {emp.historicalUsedTotal !== undefined && emp.historicalUsedTotal !== currentUsed && (
+                              <> (全: {emp.historicalUsedTotal}日)</>
+                            )}
+                          </p>
                         </div>
                       </div>
                       <div className={`mt-2 pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                         <div className="flex items-center justify-between text-[10px]">
                           <span className={isDark ? 'text-white/50' : 'text-slate-500'}>
-                            付与: {emp.grantedTotal}日 / 残高: {emp.balance}日
+                            付与: {emp.currentGrantedTotal ?? emp.grantedTotal}日
+                            {emp.historicalGrantedTotal !== undefined && emp.historicalGrantedTotal !== (emp.currentGrantedTotal ?? emp.grantedTotal) && (
+                              <> (全: {emp.historicalGrantedTotal}日)</>
+                            )}
+                            {' / '}
+                            残高: {emp.currentBalance ?? emp.balance}日
                           </span>
                           <span className={`font-black px-2 py-0.5 rounded ${
-                            emp.usedTotal === 0
+                            currentUsed === 0
                               ? 'bg-red-500/20 text-red-400'
-                              : emp.usedTotal <= 2
+                              : currentUsed <= 2
                                 ? 'bg-orange-500/20 text-orange-400'
                                 : 'bg-yellow-500/20 text-yellow-400'
                           }`}>

@@ -77,6 +77,21 @@ export function mergeExcelData(
     entryDate: excelData.entryDate !== undefined ? excelData.entryDate : localEmployee.entryDate,
     status: excelData.status !== undefined ? excelData.status : localEmployee.status,
 
+    // ⭐ NUEVO: Preservar periodHistory y campos de expiración
+    periodHistory: excelData.periodHistory !== undefined ? excelData.periodHistory : localEmployee.periodHistory,
+
+    // ⭐ NUEVO: Valores ACTUALES (períodos vigentes)
+    currentGrantedTotal: excelData.currentGrantedTotal !== undefined ? excelData.currentGrantedTotal : localEmployee.currentGrantedTotal,
+    currentUsedTotal: excelData.currentUsedTotal !== undefined ? excelData.currentUsedTotal : localEmployee.currentUsedTotal,
+    currentBalance: excelData.currentBalance !== undefined ? excelData.currentBalance : localEmployee.currentBalance,
+    currentExpiredCount: excelData.currentExpiredCount !== undefined ? excelData.currentExpiredCount : localEmployee.currentExpiredCount,
+
+    // ⭐ NUEVO: Valores HISTÓRICOS (todos los períodos)
+    historicalGrantedTotal: excelData.historicalGrantedTotal !== undefined ? excelData.historicalGrantedTotal : localEmployee.historicalGrantedTotal,
+    historicalUsedTotal: excelData.historicalUsedTotal !== undefined ? excelData.historicalUsedTotal : localEmployee.historicalUsedTotal,
+    historicalBalance: excelData.historicalBalance !== undefined ? excelData.historicalBalance : localEmployee.historicalBalance,
+    historicalExpiredCount: excelData.historicalExpiredCount !== undefined ? excelData.historicalExpiredCount : localEmployee.historicalExpiredCount,
+
     // Campos calculados - se actualizarán después del merge de fechas
     grantedTotal: excelData.grantedTotal !== undefined ? excelData.grantedTotal : localEmployee.grantedTotal,
     carryOver: excelData.carryOver !== undefined ? excelData.carryOver : localEmployee.carryOver,

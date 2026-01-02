@@ -3,6 +3,7 @@ import { AppData, Employee, LeaveRecord } from '../types';
 import { migrateData, showMigrationInfo } from './migrationService';
 import { canApproveLeave } from './validationService';
 import { getEmployeeBalance } from './balanceCalculator';
+import { recalculateAllExpirations } from './expirationService';
 
 const DB_KEY = 'yukyu_pro_storage';
 
@@ -56,7 +57,19 @@ export const db = {
         db.saveData(migrationResult.data);
       }
 
-      return migrationResult.data;
+      // ⭐ NUEVO: Recálculo automático de expiraciones cada vez que se cargan los datos
+      const updatedEmployees = recalculateAllExpirations(migrationResult.data.employees);
+      const finalData = {
+        ...migrationResult.data,
+        employees: updatedEmployees
+      };
+
+      // Si hubo cambios en las expiraciones, guardar automáticamente
+      if (updatedEmployees !== migrationResult.data.employees) {
+        db.saveData(finalData);
+      }
+
+      return finalData;
     } catch (error) {
       console.error('❌ Error al cargar datos:', error);
       alert('Error al cargar datos. Verifique la consola para más detalles.');

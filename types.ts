@@ -29,6 +29,21 @@ export interface Employee {
     approvedDates: string[]; // Fechas aprobadas localmente (no en Excel)
     manualAdjustments: number; // Ajustes manuales al balance
   };
+
+  // ⭐ NUEVOS CAMPOS - Sistema de Expiración con Historial Completo
+  periodHistory?: PeriodHistory[]; // Historial detallado de cada período de yukyu
+
+  // Valores ACTUALES (solo períodos vigentes/no expirados)
+  currentGrantedTotal?: number; // 付与数 de períodos vigentes
+  currentUsedTotal?: number; // 消化日数 de períodos vigentes
+  currentBalance?: number; // 残高 de períodos vigentes
+  currentExpiredCount?: number; // Siempre 0 (períodos actuales no tienen expirados)
+
+  // Valores HISTÓRICOS (todos los períodos incluyendo expirados)
+  historicalGrantedTotal?: number; // 付与数 total de todos los períodos
+  historicalUsedTotal?: number; // 消化日数 total de todos los períodos
+  historicalBalance?: number; // 残高 total de todos los períodos
+  historicalExpiredCount?: number; // 時効数 total de todos los períodos
 }
 
 export interface LeaveRecord {
@@ -89,4 +104,39 @@ export interface MergeResult {
   employee: Employee;
   conflicts: string[];
   warnings: string[];
+}
+
+/**
+ * Historial detallado de un período de yukyu
+ * Preserva información exacta de cada fila del Excel de 有給休暇管理
+ * Permite tracking completo de períodos expirados y vigentes
+ */
+export interface PeriodHistory {
+  // Identificación del período
+  periodIndex: number; // 0-based index (0=初回, 1=2回目, etc.)
+  periodName: string; // "初回(6ヶ月)", "1年6ヶ月", "2年6ヶ月", etc.
+
+  // Datos temporales
+  elapsedMonths: number; // 経過月 (6, 18, 30, 42, 54, etc.)
+  yukyuStartDate: string; // 有給発生日 del Excel (YYYY-MM-DD)
+  grantDate: Date; // Fecha calculada de otorgamiento (entryDate + elapsedMonths)
+  expiryDate: Date; // Fecha de expiración (grantDate + 2 años)
+
+  // Balance del Excel para este período específico
+  granted: number; // 付与数 de esta fila (10, 11, 12, 14, 16, etc.)
+  used: number; // 消化日数 de esta fila
+  balance: number; // 期末残高 de esta fila
+  expired: number; // 時効数 del Excel ⭐ fuente de verdad para determinar expiración
+  carryOver?: number; // 繰越 (si existe)
+
+  // Estado del período
+  isExpired: boolean; // true si expired > 0 o expiryDate < now
+  isCurrentPeriod: boolean; // true si es el período actual del empleado
+
+  // Fechas específicas consumidas en este período
+  yukyuDates: string[]; // Subset de fechas que pertenecen a este período
+
+  // Metadata
+  source: 'excel'; // Siempre 'excel' (fuente de los datos)
+  syncedAt: string; // Timestamp ISO de cuando se importó (YYYY-MM-DDTHH:mm:ss.sssZ)
 }

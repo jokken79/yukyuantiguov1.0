@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { db } from '../services/db';
-import { Employee } from '../types';
+import { Employee, PeriodHistory } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { mergeExcelData, validateMerge, getMergeSummary } from '../services/mergeService';
 import { getEmployeeBalance } from '../services/balanceCalculator';
@@ -164,6 +164,87 @@ const processDaicho = (
   return { employees: existingEmployees, count, activeCount, resignedCount };
 };
 
+// ⭐ Construir historial de períodos desde múltiples filas del Excel
+const buildPeriodHistory = (
+  rows: any[],
+  employeeId: string,
+  category: string
+): PeriodHistory[] => {
+  const now = new Date();
+  const periodHistory: PeriodHistory[] = [];
+
+  const firstRow = rows[0];
+  const entryDateRaw = findValue(firstRow, ['入社日', '入社']);
+  const entryDate = entryDateRaw ? excelDateToISO(entryDateRaw) : undefined;
+
+  if (!entryDate) {
+    console.warn(`⚠️ ${employeeId}: Sin 入社日, no se puede crear periodHistory`);
+    return [];
+  }
+
+  const entry = new Date(entryDate);
+
+  rows.forEach((row, index) => {
+    // Extraer datos de la fila
+    const elapsedMonths = Number(findValue(row, ['経過月', '経過月数'])) || 0;
+    const yukyuStartDateRaw = findValue(row, ['有給発生', '有給発生日']);
+    const granted = Number(findValue(row, ['付与数', '付与合計', '付与日数', '当期付与'])) || 0;
+    const used = Number(findValue(row, ['消化日数', '消化合計', '使用日数'])) || 0;
+    const balance = Number(findValue(row, ['期末残高', '残日数', '有給残', '残高'])) || 0;
+    const expired = Number(findValue(row, ['時効数', '時効', '消滅日数', '時効日数'])) || 0;
+    const carryOver = Number(findValue(row, ['繰越', '繰越日数'])) || undefined;
+
+    // Calcular fechas
+    const yukyuStartDate = yukyuStartDateRaw ? excelDateToISO(yukyuStartDateRaw) : undefined;
+
+    const grantDate = new Date(entry);
+    grantDate.setMonth(grantDate.getMonth() + elapsedMonths);
+
+    const expiryDate = new Date(grantDate);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 2);
+
+    // ⭐ CONFIAR en 時効数 del Excel como fuente de verdad
+    const isExpired = expired > 0 || now >= expiryDate;
+
+    // Determinar período actual
+    const monthsFromEntry = (now.getFullYear() - entry.getFullYear()) * 12 +
+                            (now.getMonth() - entry.getMonth());
+    const isCurrentPeriod = Math.abs(elapsedMonths - monthsFromEntry) <= 6;
+
+    // Nombre del período
+    const periodName = elapsedMonths === 6
+      ? '初回(6ヶ月)'
+      : `${Math.floor(elapsedMonths / 12)}年${elapsedMonths % 12 > 0 ? elapsedMonths % 12 + 'ヶ月' : ''}`;
+
+    const rowYukyuDates = extractYukyuDates(row);
+
+    periodHistory.push({
+      periodIndex: index,
+      periodName,
+      elapsedMonths,
+      yukyuStartDate: yukyuStartDate || grantDate.toISOString().split('T')[0],
+      grantDate,
+      expiryDate,
+      granted,
+      used,
+      balance,
+      expired,
+      carryOver,
+      isExpired,
+      isCurrentPeriod,
+      yukyuDates: rowYukyuDates,
+      source: 'excel',
+      syncedAt: new Date().toISOString()
+    });
+  });
+
+  // Ordenar por fecha de otorgamiento (más antiguo primero)
+  periodHistory.sort((a, b) => a.grantDate.getTime() - b.grantDate.getTime());
+
+  console.log(`📊 ${employeeId}: ${periodHistory.length} períodos creados`);
+  return periodHistory;
+};
+
 // Procesar YUKYU
 const processYukyu = (
   workbook: XLSX.WorkBook,
@@ -221,22 +302,29 @@ const processYukyu = (
       activeCount++;
     }
 
-    // ⭐ NUEVO: Sumar valores de TODAS las filas
-    let grantedTotal = 0;
+    // ⭐ NUEVO: Construir historial de períodos completo
+    const periodHistory = buildPeriodHistory(allRows, id, category);
+
+    // ⭐ NUEVO: Calcular valores ACTUALES (solo períodos vigentes/no expirados)
+    const currentPeriods = periodHistory.filter(p => !p.isExpired);
+    const currentGrantedTotal = currentPeriods.reduce((sum, p) => sum + p.granted, 0);
+    const currentUsedTotal = currentPeriods.reduce((sum, p) => sum + p.used, 0);
+    const currentBalance = currentPeriods.reduce((sum, p) => sum + p.balance, 0);
+    const currentExpiredCount = 0; // Los períodos actuales nunca tienen expirados
+
+    // ⭐ NUEVO: Calcular valores HISTÓRICOS (todos los períodos)
+    const historicalGrantedTotal = periodHistory.reduce((sum, p) => sum + p.granted, 0);
+    const historicalUsedTotal = periodHistory.reduce((sum, p) => sum + p.used, 0);
+    const historicalBalance = periodHistory.reduce((sum, p) => sum + p.balance, 0);
+    const historicalExpiredCount = periodHistory.reduce((sum, p) => sum + p.expired, 0);
+
+    // ⭐ LEGACY: Calcular valores para backward compatibility
     let carryOver = 0;
     let totalAvailable = 0;
-    let usedTotal = 0;
-    let balance = 0;
-    let expiredCount = 0;
     let remainingAfterExpiry = 0;
-
     allRows.forEach(row => {
-      grantedTotal += Number(findValue(row, ['付与数', '付与合計', '付与日数', '当期付与'])) || 0;
       carryOver += Number(findValue(row, ['繰越', '繰越日数'])) || 0;
       totalAvailable += Number(findValue(row, ['保有数', '保有日数'])) || 0;
-      usedTotal += Number(findValue(row, ['消化日数', '消化合計', '使用日数'])) || 0;
-      balance += Number(findValue(row, ['期末残高', '残日数', '有給残', '残高'])) || 0;
-      expiredCount += Number(findValue(row, ['時効数', '時効', '消滅日数', '時効日数'])) || 0;
       remainingAfterExpiry += Number(findValue(row, ['時効後残', '時効後残日数'])) || 0;
     });
 
@@ -258,8 +346,10 @@ const processYukyu = (
     const yukyuStartDate = excelDateToISO(yukyuStartDateRaw);
     const uniqueYukyuDates = [...new Set(allYukyuDates)].sort();
 
-    // ⭐ NUEVO: Console log para debugging
-    console.log(`📋 ${name} (№${id}): ${allRows.length} períodos, 付与${grantedTotal} 消化${usedTotal} 残${balance}`);
+    // ⭐ NUEVO: Console log mejorado con valores dual
+    console.log(`📋 ${name} (№${id}): ${periodHistory.length} períodos`);
+    console.log(`   Current:  付与${currentGrantedTotal} 消化${currentUsedTotal} 残${currentBalance}`);
+    console.log(`   Total:    付与${historicalGrantedTotal} 消化${historicalUsedTotal} 時効${historicalExpiredCount}`);
 
     const existingIdx = existingEmployees.findIndex(emp => emp.id === id);
 
@@ -276,12 +366,29 @@ const processYukyu = (
         elapsedTime: elapsedTime ? String(elapsedTime) : undefined,
         elapsedMonths: elapsedMonths || undefined,
         yukyuStartDate: yukyuStartDate || undefined,
-        grantedTotal: grantedTotal || undefined,
+
+        // ⭐ NUEVO: Historial completo de períodos
+        periodHistory: periodHistory.length > 0 ? periodHistory : undefined,
+
+        // ⭐ NUEVO: Valores ACTUALES (solo períodos vigentes)
+        currentGrantedTotal: currentGrantedTotal || undefined,
+        currentUsedTotal: currentUsedTotal || undefined,
+        currentBalance: currentBalance || undefined,
+        currentExpiredCount: currentExpiredCount,
+
+        // ⭐ NUEVO: Valores HISTÓRICOS (todos los períodos)
+        historicalGrantedTotal: historicalGrantedTotal || undefined,
+        historicalUsedTotal: historicalUsedTotal || undefined,
+        historicalBalance: historicalBalance || undefined,
+        historicalExpiredCount: historicalExpiredCount || undefined,
+
+        // ⭐ LEGACY: Campos para backward compatibility
+        grantedTotal: currentGrantedTotal || undefined,
         carryOver: carryOver || undefined,
         totalAvailable: totalAvailable || undefined,
-        usedTotal: usedTotal || undefined,
-        balance: balance || undefined,
-        expiredCount: expiredCount || undefined,
+        usedTotal: historicalUsedTotal || undefined,
+        balance: currentBalance || undefined,
+        expiredCount: historicalExpiredCount || undefined,
         remainingAfterExpiry: remainingAfterExpiry || undefined,
         yukyuDates: uniqueYukyuDates.length > 0 ? uniqueYukyuDates : undefined,
         status: status

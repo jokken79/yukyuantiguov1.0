@@ -19,20 +19,13 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const [loadingAI, setLoadingAI] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
 
-  // 1. 月別使用推移データの生成 (承認済み + Excel importado)
+  // 1. 月別使用推移データの生成 (⭐ SOLO yukyuDates - BUG #3 resuelto)
   const monthlyTrendData = useMemo(() => {
     const months = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
     const counts = new Array(12).fill(0);
 
-    // Contar desde records (solicitudes aprobadas)
-    data.records.forEach(r => {
-      if (r.type === 'paid' && r.status === 'approved') {
-        const m = new Date(r.date).getMonth();
-        counts[m]++;
-      }
-    });
-
-    // También contar desde yukyuDates de empleados (datos importados de Excel)
+    // ⭐ NUEVO: Contar SOLO desde yukyuDates (single source of truth)
+    // Esto elimina duplicados porque records aprobados ya están en yukyuDates
     data.employees.forEach(emp => {
       if (emp.yukyuDates && emp.yukyuDates.length > 0) {
         emp.yukyuDates.forEach(dateStr => {
@@ -49,22 +42,14 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     });
 
     return months.map((name, i) => ({ name, value: counts[i] }));
-  }, [data.records, data.employees]);
+  }, [data.employees]); // ⭐ Dependencia cambiada: solo employees
 
-  // 2. 曜日別取得パターンの生成 (承認済み + Excel importado)
+  // 2. 曜日別取得パターンの生成 (⭐ SOLO yukyuDates - BUG #3 resuelto)
   const dayOfWeekData = useMemo(() => {
     const days = ["日", "月", "火", "水", "木", "金", "土"];
     const counts = new Array(7).fill(0);
 
-    // Contar desde records (solicitudes aprobadas)
-    data.records.forEach(r => {
-      if (r.type === 'paid' && r.status === 'approved') {
-        const d = new Date(r.date).getDay();
-        counts[d]++;
-      }
-    });
-
-    // También contar desde yukyuDates de empleados (datos importados de Excel)
+    // ⭐ NUEVO: Contar SOLO desde yukyuDates (single source of truth)
     data.employees.forEach(emp => {
       if (emp.yukyuDates && emp.yukyuDates.length > 0) {
         emp.yukyuDates.forEach(dateStr => {
@@ -81,7 +66,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     });
 
     return days.map((name, i) => ({ name, value: counts[i] })).filter((_, i) => i !== 0 && i !== 6); // 平日のみ
-  }, [data.records, data.employees]);
+  }, [data.employees]); // ⭐ Dependencia cambiada: solo employees
 
   // Filter active employees for accurate analytics
   const activeEmployees = useMemo(() => {

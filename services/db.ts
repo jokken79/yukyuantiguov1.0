@@ -1,5 +1,8 @@
 
 import { AppData, Employee, LeaveRecord } from '../types';
+import { migrateData, showMigrationInfo } from './migrationService';
+import { canApproveLeave } from './validationService';
+import { getEmployeeBalance } from './balanceCalculator';
 
 const DB_KEY = 'yukyu_pro_storage';
 
@@ -10,27 +13,60 @@ const generateId = (): string => {
 
 export const db = {
   saveData: (data: AppData) => {
-    localStorage.setItem(DB_KEY, JSON.stringify(data));
+    try {
+      localStorage.setItem(DB_KEY, JSON.stringify(data));
+    } catch (error: any) {
+      if (error.name === 'QuotaExceededError') {
+        alert('⚠️ Almacenamiento lleno. Por favor, exporte los datos y limpie registros antiguos.');
+        throw error;
+      }
+      console.error('Error guardando datos:', error);
+      throw error;
+    }
   },
 
   loadData: (): AppData => {
-    const raw = localStorage.getItem(DB_KEY);
-    if (!raw) {
+    try {
+      const raw = localStorage.getItem(DB_KEY);
+      if (!raw) {
+        return {
+          employees: [],
+          records: [],
+          config: { companyName: 'My Company', fiscalYearStart: '04-01' }
+        };
+      }
+
+      let data = JSON.parse(raw);
+
+      // Migrate old records without status field (legacy support)
+      data.records = data.records.map((r: any) => ({
+        ...r,
+        id: r.id || generateId(),
+        status: r.status || 'approved', // Old records are considered approved
+        createdAt: r.createdAt || new Date().toISOString()
+      }));
+
+      // ⭐ NUEVO: Auto-migración a versión 2
+      const migrationResult = migrateData(data);
+
+      if (migrationResult.info.wasNeeded) {
+        // Si hubo migración, mostrar info y guardar
+        showMigrationInfo(migrationResult.info);
+        // Guardar datos migrados de vuelta a localStorage
+        db.saveData(migrationResult.data);
+      }
+
+      return migrationResult.data;
+    } catch (error) {
+      console.error('❌ Error al cargar datos:', error);
+      alert('Error al cargar datos. Verifique la consola para más detalles.');
+      // Retornar datos vacíos en caso de error crítico
       return {
         employees: [],
         records: [],
         config: { companyName: 'My Company', fiscalYearStart: '04-01' }
       };
     }
-    const data = JSON.parse(raw);
-    // Migrate old records without status field
-    data.records = data.records.map((r: any) => ({
-      ...r,
-      id: r.id || generateId(),
-      status: r.status || 'approved', // Old records are considered approved
-      createdAt: r.createdAt || new Date().toISOString()
-    }));
-    return data;
   },
 
   upsertEmployee: (employee: Employee) => {
@@ -59,26 +95,62 @@ export const db = {
   },
 
   // Approve a pending record
-  approveRecord: (recordId: string, approvedBy?: string) => {
+  approveRecord: (recordId: string, approvedBy?: string): { success: boolean; error?: string; code?: string } => {
     const data = db.loadData();
     const record = data.records.find(r => r.id === recordId);
-    if (!record || record.status !== 'pending') return false;
 
+    if (!record || record.status !== 'pending') {
+      return { success: false, error: 'Record not found or not pending' };
+    }
+
+    const emp = data.employees.find(e => e.id === record.employeeId);
+
+    // ⭐ NUEVO: Validar ANTES de aprobar
+    const validation = canApproveLeave(emp, record);
+    if (!validation.isValid) {
+      console.warn('Approval blocked:', validation.code, validation.error);
+      return { success: false, error: validation.error, code: validation.code };
+    }
+
+    // Aprobar record
     record.status = 'approved';
     record.approvedAt = new Date().toISOString();
     record.approvedBy = approvedBy || 'システム';
 
-    // Update employee balance when approved
-    if (record.type === 'paid') {
-      const emp = data.employees.find(e => e.id === record.employeeId);
-      if (emp) {
-        emp.usedTotal += 1;
-        emp.balance -= 1;
+    // ⭐ NUEVO: Actualizar yukyuDates[] (BUG #4)
+    if (record.type === 'paid' && emp) {
+      // Asegurar que yukyuDates existe
+      if (!emp.yukyuDates) {
+        emp.yukyuDates = [];
       }
+
+      // Agregar fecha si no existe (la validación ya verificó que no esté duplicada)
+      if (!emp.yukyuDates.includes(record.date)) {
+        emp.yukyuDates.push(record.date);
+        emp.yukyuDates.sort(); // Mantener ordenado
+      }
+
+      // ⭐ NUEVO: Marcar como modificación local
+      if (!emp.localModifications) {
+        emp.localModifications = { approvedDates: [], manualAdjustments: 0 };
+      }
+      if (!emp.localModifications.approvedDates.includes(record.date)) {
+        emp.localModifications.approvedDates.push(record.date);
+      }
+
+      // ⭐ NUEVO: Recalcular balance usando balanceCalculator
+      const balance = getEmployeeBalance(emp);
+      emp.grantedTotal = balance.granted;
+      emp.usedTotal = balance.used;
+      emp.balance = balance.remaining;
+      emp.expiredCount = balance.expiredCount;
+
+      // ⭐ NUEVO: Marcar record como sincronizado
+      record.syncedToYukyuDates = true;
     }
 
     db.saveData(data);
-    return true;
+    return { success: true };
   },
 
   // Reject a pending record
@@ -96,30 +168,71 @@ export const db = {
   },
 
   // Approve multiple records at once
-  approveMultiple: (recordIds: string[], approvedBy?: string) => {
+  approveMultiple: (recordIds: string[], approvedBy?: string): { succeeded: string[]; failed: Array<{ recordId: string; reason: string; code?: string }> } => {
     const data = db.loadData();
-    let approvedCount = 0;
+    const results = {
+      succeeded: [] as string[],
+      failed: [] as Array<{ recordId: string; reason: string; code?: string }>
+    };
 
     recordIds.forEach(recordId => {
       const record = data.records.find(r => r.id === recordId);
-      if (!record || record.status !== 'pending') return;
 
+      if (!record || record.status !== 'pending') {
+        results.failed.push({ recordId, reason: 'Record not found or not pending' });
+        return;
+      }
+
+      const emp = data.employees.find(e => e.id === record.employeeId);
+
+      // ⭐ NUEVO: Validar individualmente
+      const validation = canApproveLeave(emp, record);
+      if (!validation.isValid) {
+        results.failed.push({
+          recordId,
+          reason: validation.error || 'Validation failed',
+          code: validation.code
+        });
+        return;
+      }
+
+      // Aprobar (mismo código que approveRecord)
       record.status = 'approved';
       record.approvedAt = new Date().toISOString();
       record.approvedBy = approvedBy || 'システム';
 
-      if (record.type === 'paid') {
-        const emp = data.employees.find(e => e.id === record.employeeId);
-        if (emp) {
-          emp.usedTotal += 1;
-          emp.balance -= 1;
+      // ⭐ Actualizar yukyuDates[] y balance
+      if (record.type === 'paid' && emp) {
+        if (!emp.yukyuDates) {
+          emp.yukyuDates = [];
         }
+
+        if (!emp.yukyuDates.includes(record.date)) {
+          emp.yukyuDates.push(record.date);
+          emp.yukyuDates.sort();
+        }
+
+        if (!emp.localModifications) {
+          emp.localModifications = { approvedDates: [], manualAdjustments: 0 };
+        }
+        if (!emp.localModifications.approvedDates.includes(record.date)) {
+          emp.localModifications.approvedDates.push(record.date);
+        }
+
+        const balance = getEmployeeBalance(emp);
+        emp.grantedTotal = balance.granted;
+        emp.usedTotal = balance.used;
+        emp.balance = balance.remaining;
+        emp.expiredCount = balance.expiredCount;
+
+        record.syncedToYukyuDates = true;
       }
-      approvedCount++;
+
+      results.succeeded.push(recordId);
     });
 
     db.saveData(data);
-    return approvedCount;
+    return results;
   },
 
   // Reject multiple records at once

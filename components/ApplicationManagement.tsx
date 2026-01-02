@@ -50,14 +50,32 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
   const pendingRecords = filteredRecords.filter(r => r.status === 'pending');
 
   const handleApprove = (recordId: string) => {
-    if (db.approveRecord(recordId)) {
-      onUpdate();
-      setSelectedIds(prev => {
-        const next = new Set(prev);
-        next.delete(recordId);
-        return next;
-      });
+    const result = db.approveRecord(recordId);
+
+    if (!result.success) {
+      // ⭐ NUEVO: Mostrar error específico
+      const errorMessages: Record<string, string> = {
+        'INSUFFICIENT_BALANCE': '❌ 残高不足：この社員は有給日数がありません。',
+        'DUPLICATE_DATE': '⚠️ 重複：この日付は既に取得済みです。',
+        'EMPLOYEE_RETIRED': '❌ エラー：退社した社員の申請は承認できません。',
+        'EMPLOYEE_NOT_FOUND': '❌ エラー：社員が見つかりません。'
+      };
+
+      const message = result.code && errorMessages[result.code]
+        ? errorMessages[result.code]
+        : result.error || 'エラーが発生しました。';
+
+      alert(message);
+      return;
     }
+
+    // Éxito
+    onUpdate();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.delete(recordId);
+      return next;
+    });
   };
 
   const handleReject = (recordId: string) => {
@@ -85,8 +103,30 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
     }
 
     if (confirm(`${pendingSelected.length}件の申請を一括承認しますか？`)) {
-      const count = db.approveMultiple(pendingSelected);
-      alert(`${count}件の申請を承認しました`);
+      const results = db.approveMultiple(pendingSelected);
+
+      // ⭐ NUEVO: Mostrar resultados separados
+      let message = `✅ 承認完了：${results.succeeded.length}件\n`;
+
+      if (results.failed.length > 0) {
+        message += `\n❌ 失敗：${results.failed.length}件\n`;
+        message += '\n失敗理由：\n';
+        results.failed.forEach((f, i) => {
+          if (i < 5) { // Mostrar máximo 5 errores
+            const reason = f.code === 'INSUFFICIENT_BALANCE' ? '残高不足' :
+                          f.code === 'DUPLICATE_DATE' ? '重複' :
+                          f.code === 'EMPLOYEE_RETIRED' ? '退社' :
+                          f.reason;
+            message += `- ${reason}\n`;
+          }
+        });
+
+        if (results.failed.length > 5) {
+          message += `... y ${results.failed.length - 5} más\n`;
+        }
+      }
+
+      alert(message);
       setSelectedIds(new Set());
       onUpdate();
     }

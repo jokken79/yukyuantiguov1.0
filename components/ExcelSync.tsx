@@ -4,6 +4,8 @@ import * as XLSX from 'xlsx';
 import { db } from '../services/db';
 import { Employee } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
+import { mergeExcelData, validateMerge, getMergeSummary } from '../services/mergeService';
+import { getEmployeeBalance } from '../services/balanceCalculator';
 
 interface ExcelSyncProps {
   onSyncComplete: () => void;
@@ -240,27 +242,62 @@ const processYukyu = (
 
     if (existingIdx >= 0) {
       const emp = existingEmployees[existingIdx];
-      existingEmployees[existingIdx] = {
-        ...emp,
-        name: name ? String(name) : emp.name,
-        nameKana: nameKana ? String(nameKana) : emp.nameKana,
-        client: client ? String(client) : emp.client,
-        category: emp.category || category,
-        entryDate: entryDate || emp.entryDate,
-        elapsedTime: elapsedTime ? String(elapsedTime) : emp.elapsedTime,
-        elapsedMonths: elapsedMonths || emp.elapsedMonths,
-        yukyuStartDate: yukyuStartDate || emp.yukyuStartDate,
-        grantedTotal: grantedTotal || emp.grantedTotal,
-        carryOver: carryOver || emp.carryOver,
-        totalAvailable: totalAvailable || emp.totalAvailable,
-        usedTotal: usedTotal || emp.usedTotal,
-        balance: balance || emp.balance,
-        expiredCount: expiredCount || emp.expiredCount,
-        remainingAfterExpiry: remainingAfterExpiry || emp.remainingAfterExpiry,
-        yukyuDates: uniqueYukyuDates.length > 0 ? uniqueYukyuDates : emp.yukyuDates,
-        status: status,
-        lastSync: new Date().toISOString()
+
+      // ⭐ NUEVO: Preparar datos del Excel para merge
+      const excelData: Partial<Employee> = {
+        name: name ? String(name) : undefined,
+        nameKana: nameKana ? String(nameKana) : undefined,
+        client: client ? String(client) : undefined,
+        category: category || undefined,
+        entryDate: entryDate || undefined,
+        elapsedTime: elapsedTime ? String(elapsedTime) : undefined,
+        elapsedMonths: elapsedMonths || undefined,
+        yukyuStartDate: yukyuStartDate || undefined,
+        grantedTotal: grantedTotal || undefined,
+        carryOver: carryOver || undefined,
+        totalAvailable: totalAvailable || undefined,
+        usedTotal: usedTotal || undefined,
+        balance: balance || undefined,
+        expiredCount: expiredCount || undefined,
+        remainingAfterExpiry: remainingAfterExpiry || undefined,
+        yukyuDates: uniqueYukyuDates.length > 0 ? uniqueYukyuDates : undefined,
+        status: status
       };
+
+      // ⭐ NUEVO: Merge inteligente que preserva aprobaciones locales
+      const mergeResult = mergeExcelData(excelData, emp);
+
+      // Validar merge
+      if (!validateMerge(mergeResult)) {
+        console.error(`❌ Error al mergear empleado ${emp.name}`);
+      }
+
+      // Mostrar warnings si existen
+      if (mergeResult.warnings.length > 0) {
+        console.warn(`⚠️ Warnings para ${emp.name}:`, mergeResult.warnings);
+      }
+
+      // Mostrar conflictos si existen
+      if (mergeResult.conflicts.length > 0) {
+        console.warn(`⚠️ Conflictos para ${emp.name}:`, mergeResult.conflicts);
+        // TODO: Agregar modal UI para mostrar conflictos al usuario
+      }
+
+      // ⭐ NUEVO: Recalcular balance después del merge
+      const balanceInfo = getEmployeeBalance(mergeResult.employee);
+      mergeResult.employee.grantedTotal = balanceInfo.granted;
+      mergeResult.employee.usedTotal = balanceInfo.used;
+      mergeResult.employee.balance = balanceInfo.remaining;
+      mergeResult.employee.expiredCount = balanceInfo.expiredCount;
+
+      // Actualizar empleado
+      existingEmployees[existingIdx] = mergeResult.employee;
+
+      // Mostrar resumen de cambios
+      const summary = getMergeSummary(emp, mergeResult.employee);
+      if (emp.yukyuDates?.length !== mergeResult.employee.yukyuDates?.length) {
+        console.log(summary);
+      }
     } else {
       existingEmployees.push({
         id,

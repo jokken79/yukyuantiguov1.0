@@ -22,6 +22,13 @@ export interface Employee {
 
   status: string; // 在職中 / 退社
   lastSync: string;
+
+  // ⭐ NUEVOS CAMPOS - Refactor v2
+  lastExcelSync?: string; // Timestamp de última sincronización con Excel
+  localModifications?: {
+    approvedDates: string[]; // Fechas aprobadas localmente (no en Excel)
+    manualAdjustments: number; // Ajustes manuales al balance
+  };
 }
 
 export interface LeaveRecord {
@@ -34,6 +41,9 @@ export interface LeaveRecord {
   createdAt: string; // 申請日時
   approvedAt?: string; // 承認日時
   approvedBy?: string; // 承認者
+
+  // ⭐ NUEVO CAMPO - Refactor v2
+  syncedToYukyuDates?: boolean; // Indica si ya se agregó a employee.yukyuDates[]
 }
 
 export interface AppData {
@@ -49,4 +59,34 @@ export interface AIInsight {
   title: string;
   description: string;
   type: 'warning' | 'info' | 'success';
+}
+
+// ⭐ NUEVOS TIPOS - Refactor v2
+
+/**
+ * Información de balance calculada (usado por balanceCalculator)
+ */
+export interface BalanceInfo {
+  granted: number;      // Días otorgados totales (no expirados)
+  used: number;         // Días consumidos
+  remaining: number;    // Balance restante (granted - used)
+  expiredCount: number; // Días que expiraron (時効)
+}
+
+/**
+ * Resultado de validación de aprobación (usado por validationService)
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  error?: string;
+  code?: 'INSUFFICIENT_BALANCE' | 'DUPLICATE_DATE' | 'EMPLOYEE_RETIRED' | 'EMPLOYEE_NOT_FOUND' | 'INVALID_DATE' | 'FUTURE_DATE';
+}
+
+/**
+ * Resultado de merge de Excel (usado por mergeService)
+ */
+export interface MergeResult {
+  employee: Employee;
+  conflicts: string[];
+  warnings: string[];
 }

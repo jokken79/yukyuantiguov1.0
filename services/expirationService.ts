@@ -20,15 +20,28 @@ import { Employee, PeriodHistory } from '../types';
  * @returns Empleado con valores actualizados
  */
 export function recalculateExpiration(employee: Employee): Employee {
-  // Si no tiene periodHistory, retornar sin cambios
-  if (!employee.periodHistory || employee.periodHistory.length === 0) {
+  // ⭐ PASO 0: Generar nuevos períodos automáticamente si es necesario
+  const newPeriods = generateNewPeriods(employee);
+
+  if (newPeriods.length > 0) {
+    console.log(`🆕 ${employee.name}: Generando ${newPeriods.length} nuevo(s) período(s) automáticamente`);
+    newPeriods.forEach(p => {
+      console.log(`   → ${p.periodName} (${p.elapsedMonths}m): ${p.granted}日, expira ${p.expiryDate.split('T')[0]}`);
+    });
+  }
+
+  // Combinar períodos existentes + nuevos períodos generados
+  const allPeriods = [...(employee.periodHistory || []), ...newPeriods];
+
+  // Si no hay períodos después de intentar generar, retornar sin cambios
+  if (allPeriods.length === 0) {
     return employee;
   }
 
   const now = new Date();
 
   // ⭐ PASO 1: Recalcular isExpired para cada período
-  const updatedPeriodHistory: PeriodHistory[] = employee.periodHistory.map(period => {
+  const updatedPeriodHistory: PeriodHistory[] = allPeriods.map(period => {
     // Convertir expiryDate a Date si es string
     const expiryDate = typeof period.expiryDate === 'string'
       ? new Date(period.expiryDate)
@@ -165,4 +178,131 @@ export function getExpirationSummary(employee: Employee): string {
   const active = total - expired;
 
   return `${employee.name}: ${total} períodos (${active} vigentes, ${expired} expirados)`;
+}
+
+/**
+ * Tabla de otorgamiento de yukyus según ley japonesa
+ * Basada en 労働基準法39条
+ */
+const YUKYU_GRANT_TABLE = [
+  { elapsedMonths: 6, granted: 10, periodName: '初回(6ヶ月)' },      // 6 meses
+  { elapsedMonths: 18, granted: 11, periodName: '1年6ヶ月' },       // 1.5 años
+  { elapsedMonths: 30, granted: 12, periodName: '2年6ヶ月' },       // 2.5 años
+  { elapsedMonths: 42, granted: 14, periodName: '3年6ヶ月' },       // 3.5 años
+  { elapsedMonths: 54, granted: 16, periodName: '4年6ヶ月' },       // 4.5 años
+  { elapsedMonths: 66, granted: 18, periodName: '5年6ヶ月' },       // 5.5 años
+  { elapsedMonths: 78, granted: 20, periodName: '6年6ヶ月' },       // 6.5 años
+];
+
+/**
+ * Genera nuevos períodos automáticamente según el tiempo transcurrido
+ *
+ * @param employee - Empleado con entryDate
+ * @returns Nuevos períodos generados (si los hay)
+ */
+export function generateNewPeriods(employee: Employee): PeriodHistory[] {
+  // Verificar que tenga fecha de entrada
+  if (!employee.entryDate) {
+    return [];
+  }
+
+  const now = new Date();
+  const entryDate = new Date(employee.entryDate);
+
+  // Calcular meses transcurridos desde la entrada
+  const monthsFromEntry = (now.getFullYear() - entryDate.getFullYear()) * 12 +
+                          (now.getMonth() - entryDate.getMonth());
+
+  // Obtener períodos que YA existen
+  const existingElapsedMonths = (employee.periodHistory || [])
+    .map(p => p.elapsedMonths)
+    .sort((a, b) => a - b);
+
+  // Determinar qué períodos DEBERÍAN existir según la tabla
+  const periodsToGenerate: PeriodHistory[] = [];
+
+  YUKYU_GRANT_TABLE.forEach((grant, index) => {
+    // Si ya pasó el tiempo para este período Y aún no existe
+    if (monthsFromEntry >= grant.elapsedMonths && !existingElapsedMonths.includes(grant.elapsedMonths)) {
+
+      // Calcular fechas
+      const grantDate = new Date(entryDate);
+      grantDate.setMonth(grantDate.getMonth() + grant.elapsedMonths);
+
+      const expiryDate = new Date(grantDate);
+      expiryDate.setFullYear(expiryDate.getFullYear() + 2);
+
+      // Determinar si ya expiró
+      const isExpired = now >= expiryDate;
+
+      // Obtener el siguiente index para periodIndex
+      const maxExistingIndex = Math.max(-1, ...(employee.periodHistory || []).map(p => p.periodIndex));
+      const newIndex = maxExistingIndex + periodsToGenerate.length + 1;
+
+      periodsToGenerate.push({
+        periodIndex: newIndex,
+        periodName: grant.periodName,
+        elapsedMonths: grant.elapsedMonths,
+        yukyuStartDate: grantDate.toISOString().split('T')[0],
+        grantDate: grantDate.toISOString(),
+        expiryDate: expiryDate.toISOString(),
+        granted: grant.granted,
+        used: 0, // Nuevo período sin uso
+        balance: grant.granted, // Balance inicial = granted
+        expired: 0, // Nuevo período no tiene expirados
+        carryOver: 0,
+        isExpired,
+        isCurrentPeriod: !isExpired && Math.abs(grant.elapsedMonths - monthsFromEntry) <= 6,
+        yukyuDates: [], // Sin fechas consumidas
+        source: 'excel', // Se marca como excel para consistencia
+        syncedAt: now.toISOString()
+      });
+    }
+  });
+
+  // Si generamos períodos después del último de la tabla, continuar con 20 días
+  const lastTableEntry = YUKYU_GRANT_TABLE[YUKYU_GRANT_TABLE.length - 1];
+  if (monthsFromEntry > lastTableEntry.elapsedMonths) {
+    // Generar períodos cada 12 meses después del último de la tabla
+    let currentMonths = lastTableEntry.elapsedMonths + 12;
+    const maxExistingIndex = Math.max(-1, ...(employee.periodHistory || []).map(p => p.periodIndex));
+    let newIndexCounter = maxExistingIndex + periodsToGenerate.length + 1;
+
+    while (currentMonths <= monthsFromEntry) {
+      if (!existingElapsedMonths.includes(currentMonths)) {
+        const grantDate = new Date(entryDate);
+        grantDate.setMonth(grantDate.getMonth() + currentMonths);
+
+        const expiryDate = new Date(grantDate);
+        expiryDate.setFullYear(expiryDate.getFullYear() + 2);
+
+        const isExpired = now >= expiryDate;
+        const years = Math.floor(currentMonths / 12);
+        const months = currentMonths % 12;
+        const periodName = months > 0 ? `${years}年${months}ヶ月` : `${years}年`;
+
+        periodsToGenerate.push({
+          periodIndex: newIndexCounter++,
+          periodName,
+          elapsedMonths: currentMonths,
+          yukyuStartDate: grantDate.toISOString().split('T')[0],
+          grantDate: grantDate.toISOString(),
+          expiryDate: expiryDate.toISOString(),
+          granted: 20, // Después de 6.5 años siempre son 20 días
+          used: 0,
+          balance: 20,
+          expired: 0,
+          carryOver: 0,
+          isExpired,
+          isCurrentPeriod: !isExpired && Math.abs(currentMonths - monthsFromEntry) <= 6,
+          yukyuDates: [],
+          source: 'excel',
+          syncedAt: now.toISOString()
+        });
+      }
+      currentMonths += 12;
+    }
+  }
+
+  return periodsToGenerate;
 }

@@ -177,6 +177,43 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
     return categorizeDatesByEntryAnniversary(allLeaveHistory, selectedEmployee?.entryDate);
   }, [allLeaveHistory, selectedEmployee?.entryDate]);
 
+  // Calcular totales reales basados en historyByYear (más preciso que Excel)
+  const calculatedTotals = useMemo(() => {
+    if (!historyByYear || historyByYear.length === 0) {
+      return {
+        totalGranted: selectedEmployee?.grantedTotal || 0,
+        totalUsed: selectedEmployee?.usedTotal || 0,
+        balance: selectedEmployee?.balance || 0,
+        expiredCount: selectedEmployee?.expiredCount || 0
+      };
+    }
+
+    // Sumar todos los días otorgados de los períodos NO expirados
+    const totalGranted = historyByYear
+      .filter(period => !period.isExpired)
+      .reduce((sum, period) => sum + period.daysGranted, 0);
+
+    // Sumar todos los días consumidos
+    const totalUsed = historyByYear
+      .reduce((sum, period) => sum + period.dates.length, 0);
+
+    // Calcular días expirados: días otorgados en períodos expirados MENOS los que se consumieron
+    const expiredCount = historyByYear
+      .filter(period => period.isExpired)
+      .reduce((sum, period) => {
+        // Días expirados = días otorgados - días consumidos en ese período
+        const unusedInPeriod = period.daysGranted - period.dates.length;
+        return sum + Math.max(0, unusedInPeriod);
+      }, 0);
+
+    // Balance = otorgados - consumidos (solo períodos no expirados)
+    const balance = totalGranted - historyByYear
+      .filter(period => !period.isExpired)
+      .reduce((sum, period) => sum + period.dates.length, 0);
+
+    return { totalGranted, totalUsed, balance, expiredCount };
+  }, [historyByYear, selectedEmployee]);
+
   // Analyze usage over the last 2 years from records
   const analysis = useMemo(() => {
     if (!formData.employeeId) return { twoYearUsage: 0, recentlyUsed: 0, totalHistory: 0 };
@@ -271,39 +308,39 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
             {/* Prominent Balance Indicator - shown when employee is selected */}
             {selectedEmployee && formData.type === 'paid' && (
               <div className={`p-4 rounded-2xl flex items-center justify-between ${
-                selectedEmployee.balance <= 0
+                calculatedTotals.balance <= 0
                   ? 'bg-red-500/10 border-2 border-red-500/30'
-                  : selectedEmployee.balance <= 3
+                  : calculatedTotals.balance <= 3
                     ? 'bg-orange-500/10 border-2 border-orange-500/30'
                     : 'bg-green-500/10 border-2 border-green-500/30'
               }`}>
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-black ${
-                    selectedEmployee.balance <= 0
+                    calculatedTotals.balance <= 0
                       ? 'bg-red-500/20 text-red-500'
-                      : selectedEmployee.balance <= 3
+                      : calculatedTotals.balance <= 3
                         ? 'bg-orange-500/20 text-orange-500'
                         : 'bg-green-500/20 text-green-500'
                   }`}>
-                    {selectedEmployee.balance}
+                    {calculatedTotals.balance}
                   </div>
                   <div>
                     <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
                       有給残高
                     </p>
                     <p className={`text-xs ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
-                      {selectedEmployee.balance <= 0
+                      {calculatedTotals.balance <= 0
                         ? '残高なし - 申請不可'
-                        : selectedEmployee.balance <= 3
+                        : calculatedTotals.balance <= 3
                           ? '残りわずか'
                           : '申請可能'}
                     </p>
                   </div>
                 </div>
-                {selectedEmployee.balance > 0 && (
+                {calculatedTotals.balance > 0 && (
                   <div className={`text-right text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
-                    <p>付与: {selectedEmployee.grantedTotal}日</p>
-                    <p>消化: {selectedEmployee.usedTotal}日</p>
+                    <p>付与: {calculatedTotals.totalGranted}日</p>
+                    <p>消化: {calculatedTotals.totalUsed}日</p>
                   </div>
                 )}
               </div>
@@ -445,22 +482,22 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                   </div>
                   <div className="text-right">
                     <p className={`text-[10px] font-bold mb-1 uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>残高</p>
-                    <div className="text-4xl font-black gradient-text">{selectedEmployee.balance}<span className={`text-sm ml-1 ${isDark ? 'text-white' : 'text-slate-600'}`}>日</span></div>
+                    <div className="text-4xl font-black gradient-text">{calculatedTotals.balance}<span className={`text-sm ml-1 ${isDark ? 'text-white' : 'text-slate-600'}`}>日</span></div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
                     <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>付与</p>
-                    <p className="text-lg font-bold text-green-500">{selectedEmployee.grantedTotal}</p>
+                    <p className="text-lg font-bold text-green-500">{calculatedTotals.totalGranted}</p>
                   </div>
                   <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
                     <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>消化</p>
-                    <p className="text-lg font-bold text-pink-500">{selectedEmployee.usedTotal}</p>
+                    <p className="text-lg font-bold text-pink-500">{calculatedTotals.totalUsed}</p>
                   </div>
                   <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
                     <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>時効</p>
-                    <p className="text-lg font-bold text-orange-500">{selectedEmployee.expiredCount}</p>
+                    <p className="text-lg font-bold text-orange-500">{calculatedTotals.expiredCount}</p>
                   </div>
                 </div>
               </div>

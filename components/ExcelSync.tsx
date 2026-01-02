@@ -170,8 +170,7 @@ const processYukyu = (
   let resignedCount = 0;
 
   const employeeYukyuMap: Map<string, {
-    latestRow: any;
-    latestMonths: number;
+    allRows: any[];
     allYukyuDates: string[];
     category: string;
     status: string;
@@ -190,25 +189,26 @@ const processYukyu = (
 
       const statusRaw = findValue(row, ['在職中', '現在', '状態', 'ステータス', 'Status']);
       const status = normalizeStatus(statusRaw);
-      const elapsedMonths = Number(findValue(row, ['経過月', '経過月数'])) || 0;
       const yukyuDates = extractYukyuDates(row);
       const existing = employeeYukyuMap.get(id);
 
-      if (!existing || elapsedMonths > existing.latestMonths) {
+      if (!existing) {
+        // Primera fila de este empleado
         employeeYukyuMap.set(id, {
-          latestRow: row,
-          latestMonths: elapsedMonths,
-          allYukyuDates: existing ? [...existing.allYukyuDates, ...yukyuDates] : yukyuDates,
+          allRows: [row],
+          allYukyuDates: yukyuDates,
           category,
           status
         });
       } else {
+        // Filas adicionales del mismo empleado
+        existing.allRows.push(row);
         existing.allYukyuDates.push(...yukyuDates);
       }
     });
   });
 
-  employeeYukyuMap.forEach(({ latestRow, allYukyuDates, category, status }, id) => {
+  employeeYukyuMap.forEach(({ allRows, allYukyuDates, category, status }, id) => {
     // Contar por estado
     if (status === '退社') {
       resignedCount++;
@@ -217,26 +217,42 @@ const processYukyu = (
       activeCount++;
     }
 
-    const row = latestRow;
-    const name = findValue(row, ['氏名', '名前', '従業員名', 'Name']);
-    const nameKana = findValue(row, ['カナ', 'かな', 'Kana']);
-    const client = findValue(row, ['派遣先', '請負業務', '事務所', '工場', '部署', '勤務地']);
+    // ⭐ NUEVO: Sumar valores de TODAS las filas
+    let grantedTotal = 0;
+    let carryOver = 0;
+    let totalAvailable = 0;
+    let usedTotal = 0;
+    let balance = 0;
+    let expiredCount = 0;
+    let remainingAfterExpiry = 0;
 
-    const entryDateRaw = findValue(row, ['入社日', '入社']);
-    const elapsedTime = findValue(row, ['経過月数']);
-    const elapsedMonths = Number(findValue(row, ['経過月'])) || 0;
-    const yukyuStartDateRaw = findValue(row, ['有給発生', '有給発生日']);
-    const grantedTotal = Number(findValue(row, ['付与数', '付与合計', '付与日数', '当期付与'])) || 0;
-    const carryOver = Number(findValue(row, ['繰越'])) || 0;
-    const totalAvailable = Number(findValue(row, ['保有数'])) || 0;
-    const usedTotal = Number(findValue(row, ['消化日数', '消化合計', '使用日数'])) || 0;
-    const balance = Number(findValue(row, ['期末残高', '残日数', '有給残'])) || 0;
-    const expiredCount = Number(findValue(row, ['時効数', '時効', '消滅日数'])) || 0;
-    const remainingAfterExpiry = Number(findValue(row, ['時効後残'])) || 0;
+    allRows.forEach(row => {
+      grantedTotal += Number(findValue(row, ['付与数', '付与合計', '付与日数', '当期付与'])) || 0;
+      carryOver += Number(findValue(row, ['繰越', '繰越日数'])) || 0;
+      totalAvailable += Number(findValue(row, ['保有数', '保有日数'])) || 0;
+      usedTotal += Number(findValue(row, ['消化日数', '消化合計', '使用日数'])) || 0;
+      balance += Number(findValue(row, ['期末残高', '残日数', '有給残', '残高'])) || 0;
+      expiredCount += Number(findValue(row, ['時効数', '時効', '消滅日数', '時効日数'])) || 0;
+      remainingAfterExpiry += Number(findValue(row, ['時効後残', '時効後残日数'])) || 0;
+    });
+
+    // ⭐ NUEVO: Tomar valores no-numéricos de la PRIMERA fila
+    const firstRow = allRows[0];
+    const name = findValue(firstRow, ['氏名', '名前', '従業員名', 'Name']);
+    const nameKana = findValue(firstRow, ['カナ', 'かな', 'Kana']);
+    const client = findValue(firstRow, ['派遣先', '請負業務', '事務所', '工場', '部署', '勤務地']);
+
+    const entryDateRaw = findValue(firstRow, ['入社日', '入社']);
+    const elapsedTime = findValue(firstRow, ['経過月数']);
+    const elapsedMonths = Number(findValue(firstRow, ['経過月', '経過月数'])) || 0;
+    const yukyuStartDateRaw = findValue(firstRow, ['有給発生', '有給発生日']);
 
     const entryDate = excelDateToISO(entryDateRaw);
     const yukyuStartDate = excelDateToISO(yukyuStartDateRaw);
     const uniqueYukyuDates = [...new Set(allYukyuDates)].sort();
+
+    // ⭐ NUEVO: Console log para debugging
+    console.log(`📋 ${name} (№${id}): ${allRows.length} períodos, 付与${grantedTotal} 消化${usedTotal} 残${balance}`);
 
     const existingIdx = existingEmployees.findIndex(emp => emp.id === id);
 
@@ -283,12 +299,24 @@ const processYukyu = (
         // TODO: Agregar modal UI para mostrar conflictos al usuario
       }
 
-      // ⭐ NUEVO: Recalcular balance después del merge
-      const balanceInfo = getEmployeeBalance(mergeResult.employee);
-      mergeResult.employee.grantedTotal = balanceInfo.granted;
-      mergeResult.employee.usedTotal = balanceInfo.used;
-      mergeResult.employee.balance = balanceInfo.remaining;
-      mergeResult.employee.expiredCount = balanceInfo.expiredCount;
+      // ⚠️ DESHABILITADO: Confiamos en los valores del Excel
+      // Los valores ya están sumados correctamente de todas las filas
+      // No necesitamos recalcular porque el Excel tiene la información real
+      //
+      // const balanceInfo = getEmployeeBalance(mergeResult.employee);
+      // mergeResult.employee.grantedTotal = balanceInfo.granted;
+      // mergeResult.employee.usedTotal = balanceInfo.used;
+      // mergeResult.employee.balance = balanceInfo.remaining;
+      // mergeResult.employee.expiredCount = balanceInfo.expiredCount;
+
+      // OPCIONAL: Solo recalcular si hay aprobaciones locales
+      const hasLocalApprovals = mergeResult.employee.localModifications?.approvedDates?.length > 0;
+      if (hasLocalApprovals) {
+        console.warn(`⚠️ ${mergeResult.employee.name} tiene aprobaciones locales. Recalculando usedTotal.`);
+        const balanceInfo = getEmployeeBalance(mergeResult.employee);
+        mergeResult.employee.usedTotal = balanceInfo.used; // Solo actualizar usedTotal
+        mergeResult.employee.balance = mergeResult.employee.grantedTotal - balanceInfo.used;
+      }
 
       // Actualizar empleado
       existingEmployees[existingIdx] = mergeResult.employee;

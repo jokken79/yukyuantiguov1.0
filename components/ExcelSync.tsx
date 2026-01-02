@@ -41,7 +41,7 @@ const loadSyncStatus = (): SyncStatus => {
   return {
     daicho: { synced: false, count: 0, activeCount: 0, resignedCount: 0, lastSync: null },
     yukyu: { synced: false, count: 0, activeCount: 0, resignedCount: 0, lastSync: null },
-    includeResigned: false
+    includeResigned: true  // ⭐ Por defecto incluir TODOS los empleados (activos + retirados)
   };
 };
 

@@ -121,6 +121,37 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     }
   }, [data]);
 
+  // Debug function - exponer datos en consola
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).debugDashboard = () => {
+        console.log('=== DASHBOARD DEBUG DATA ===');
+        console.log('Total employees:', data.employees.length);
+        console.log('Active employees:', activeEmployees.length);
+        console.log('Total records:', data.records.length);
+        console.log('Monthly trend data:', monthlyTrendData);
+        console.log('Day of week data:', dayOfWeekData);
+        console.log('Top users:', topUsers);
+        console.log('Client data:', clientData);
+        console.log('Legal alerts:', legalAlerts.length);
+        console.log('Sample employee with yukyuDates:',
+          data.employees.find(e => e.yukyuDates && e.yukyuDates.length > 0)
+        );
+        return {
+          employees: data.employees,
+          activeEmployees,
+          records: data.records,
+          monthlyTrendData,
+          dayOfWeekData,
+          topUsers,
+          clientData,
+          legalAlerts
+        };
+      };
+      console.log('💡 Debug function available: window.debugDashboard()');
+    }
+  }, [data, activeEmployees, monthlyTrendData, dayOfWeekData, topUsers, clientData, legalAlerts]);
+
   const kpis = [
     { label: '有給対象', value: activeEmployees.length, suffix: '名', color: 'blue' },
     { label: '法的リスク', value: legalAlerts.length, suffix: '名', color: 'red' },

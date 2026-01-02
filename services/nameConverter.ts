@@ -168,8 +168,86 @@ const removeVietnameseTones = (str: string): string => {
   return str.split('').map(char => toneMap[char] || char).join('');
 };
 
+// ⭐ NUEVO: Correcciones específicas para nombres comunes (especialmente vietnamitas)
+const commonNameCorrections: { [key: string]: string } = {
+  // Apellidos vietnamitas comunes
+  'nguyen': 'グエン',
+  'nguyễn': 'グエン',
+  'tran': 'チャン',
+  'trần': 'チャン',
+  'le': 'レ',
+  'lê': 'レ',
+  'pham': 'ファム',
+  'phạm': 'ファム',
+  'hoang': 'ホアン',
+  'huỳnh': 'フイン',
+  'phan': 'ファン',
+  'vu': 'ヴー',
+  'vũ': 'ヴー',
+  'vo': 'ヴォ',
+  'võ': 'ヴォ',
+  'dang': 'ダン',
+  'đặng': 'ダン',
+  'bui': 'ブイ',
+  'bùi': 'ブイ',
+  'do': 'ドー',
+  'đỗ': 'ドー',
+  'ngo': 'ゴー',
+  'ngô': 'ゴー',
+  'duong': 'ズオン',
+  'dương': 'ズオン',
+
+  // Nombres vietnamitas comunes
+  'van': 'ヴァン',
+  'văn': 'ヴァン',
+  'thi': 'ティ',
+  'thị': 'ティ',
+  'anh': 'アイン',
+  'minh': 'ミン',
+  'thanh': 'タイン',
+  'thành': 'タイン',
+  'huy': 'フイ',
+  'duc': 'ドゥック',
+  'đức': 'ドゥック',
+  'tuan': 'トゥアン',
+  'tuấn': 'トゥアン',
+  'hung': 'フン',
+  'hùng': 'フン',
+  'cuong': 'クオン',
+  'cường': 'クオン',
+  'hoai': 'ホアイ',
+  'quang': 'クアン',
+
+  // Apellidos brasileños/portugueses
+  'silva': 'シルヴァ',
+  'santos': 'サントス',
+  'oliveira': 'オリヴェイラ',
+  'souza': 'ソウザ',
+  'rodrigues': 'ロドリゲス',
+  'ferreira': 'フェレイラ',
+  'alves': 'アウヴェス',
+  'pereira': 'ペレイラ',
+  'lima': 'リマ',
+  'gomes': 'ゴメス',
+  'costa': 'コスタ',
+  'ribeiro': 'リベイロ',
+  'martins': 'マルティンス',
+  'carvalho': 'カルヴァーリョ',
+  'rocha': 'ホシャ',
+  'moura': 'モウラ',
+  'araujo': 'アラウジョ',
+  'barbosa': 'バルボーザ',
+  'reis': 'ヘイス',
+  'cardoso': 'カルドーゾ',
+};
+
 // 単語をカタカナに変換
 const convertWordToKatakana = (word: string): string => {
+  // ⭐ NUEVO: Primero verificar si es un nombre común con corrección específica
+  const lowerWord = word.toLowerCase();
+  if (commonNameCorrections[lowerWord]) {
+    return commonNameCorrections[lowerWord];
+  }
   let result = '';
   let i = 0;
   const lower = word.toLowerCase();
@@ -219,11 +297,57 @@ const convertWordToKatakana = (word: string): string => {
   return result;
 };
 
+// ⭐ NUEVO: Corrector de katakana mal escrito (nombres que ya vienen con errores del Excel)
+const fixBrokenKatakana = (katakana: string): string => {
+  let fixed = katakana;
+
+  // Regla 1: Si empieza con "ン", agregar "グ" o cambiar por nombre correcto
+  // Ejemplo: "ンウイェン" → "グエン"
+  const brokenToFixed: { [key: string]: string } = {
+    'ンウイェン': 'グエン',
+    'ンウエン': 'グエン',
+    'ンゲン': 'グエン',
+    'ンガイエン': 'グエン',
+  };
+
+  // Primero intentar reemplazo directo de palabras completas
+  Object.entries(brokenToFixed).forEach(([broken, correct]) => {
+    fixed = fixed.replace(new RegExp(broken, 'g'), correct);
+  });
+
+  // Regla 2: Si aún empieza con "ン", agregar "グ" al inicio
+  if (fixed.startsWith('ン')) {
+    console.warn(`⚠️ Nombre con ン al inicio detectado: "${fixed}" → agregando グ`);
+    fixed = 'グ' + fixed.substring(1);
+  }
+
+  // Regla 3: Correcciones de palabras específicas dentro del nombre
+  const wordFixes: { [key: string]: string } = {
+    'アン': 'ヴァン', // "An" → "Van" (cuando está en medio de nombre vietnamita)
+  };
+
+  // Solo aplicar si el nombre completo parece vietnamita (tiene otros indicadores)
+  if (fixed.includes('グエン') || fixed.includes('チャン') || fixed.includes('ファム')) {
+    // Reemplazar "アン" → "ヴァン" solo si NO es el primer componente
+    const parts = fixed.split(/[・\s　]/);
+    const correctedParts = parts.map((part, index) => {
+      if (index > 0 && part === 'アン') {
+        return 'ヴァン';
+      }
+      return part;
+    });
+    fixed = correctedParts.join('・');
+  }
+
+  return fixed;
+};
+
 // 名前全体を変換
 export const convertNameToKatakana = (name: string): string => {
-  // すでに日本語の場合はそのまま返す
+  // すでに日本語の場合は、まず修正を試みる
   if (isJapaneseName(name)) {
-    return name;
+    // ⭐ NUEVO: Corregir katakana mal escrito
+    return fixBrokenKatakana(name);
   }
 
   // ベトナム語の声調記号を除去
@@ -236,15 +360,15 @@ export const convertNameToKatakana = (name: string): string => {
   const parts = sanitizedName.split(/\s+/).filter(p => p.length > 0);
 
   const convertedParts = parts.map(part => {
-    // 既にカタカナの場合はそのまま
+    // 既にカタカナの場合は修正を試みる
     if (/^[\u30A0-\u30FF]+$/.test(part)) {
-      return part;
+      return fixBrokenKatakana(part);
     }
 
     return convertWordToKatakana(part);
   });
 
-  return convertedParts.join('　'); // 全角スペースで結合
+  return convertedParts.join('・'); // 中点で結合（より自然）
 };
 
 // 表示用の名前を取得

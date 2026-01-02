@@ -6,6 +6,7 @@ import { Employee } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { mergeExcelData, validateMerge, getMergeSummary } from '../services/mergeService';
 import { getEmployeeBalance } from '../services/balanceCalculator';
+import { convertNameToKatakana } from '../services/nameConverter';
 
 interface ExcelSyncProps {
   onSyncComplete: () => void;
@@ -127,12 +128,15 @@ const processDaicho = (
 
       const existingIdx = existingEmployees.findIndex(emp => emp.id === id);
 
+      // ⭐ Corregir katakana roto (ej: ンウイェン → グエン)
+      const correctedKana = nameKana ? convertNameToKatakana(String(nameKana)) : undefined;
+
       if (existingIdx >= 0) {
         const emp = existingEmployees[existingIdx];
         existingEmployees[existingIdx] = {
           ...emp,
           name: name ? String(name) : emp.name,
-          nameKana: nameKana ? String(nameKana) : emp.nameKana,
+          nameKana: correctedKana || emp.nameKana,
           client: client ? String(client) : emp.client,
           category: category,
           status: status,
@@ -142,7 +146,7 @@ const processDaicho = (
         existingEmployees.push({
           id,
           name: name ? String(name) : '未設定',
-          nameKana: nameKana ? String(nameKana) : undefined,
+          nameKana: correctedKana,
           client: client ? String(client) : '未設定',
           category: category,
           grantedTotal: 0,
@@ -239,8 +243,11 @@ const processYukyu = (
     // ⭐ NUEVO: Tomar valores no-numéricos de la PRIMERA fila
     const firstRow = allRows[0];
     const name = findValue(firstRow, ['氏名', '名前', '従業員名', 'Name']);
-    const nameKana = findValue(firstRow, ['カナ', 'かな', 'Kana']);
+    const nameKanaRaw = findValue(firstRow, ['カナ', 'かな', 'Kana']);
     const client = findValue(firstRow, ['派遣先', '請負業務', '事務所', '工場', '部署', '勤務地']);
+
+    // ⭐ Corregir katakana roto (ej: ンウイェン → グエン)
+    const nameKana = nameKanaRaw ? convertNameToKatakana(String(nameKanaRaw)) : undefined;
 
     const entryDateRaw = findValue(firstRow, ['入社日', '入社']);
     const elapsedTime = findValue(firstRow, ['経過月数']);

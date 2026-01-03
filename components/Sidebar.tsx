@@ -36,7 +36,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             ? 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.5)]'
             : 'bg-blue-500 hover:bg-blue-600 shadow-lg'
         }`}
-        aria-label="メニューを開く"
+        aria-label={isOpen ? "メニューを閉じる" : "メニューを開く"}
+        aria-expanded={isOpen}
+        aria-controls="main-navigation"
       >
         <svg
           className="w-6 h-6 text-white"
@@ -94,15 +96,22 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
+      <nav
+        id="main-navigation"
+        role="navigation"
+        aria-label="メインナビゲーション"
+        className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar"
+      >
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => handleTabClick(tab.id)}
+            aria-current={activeTab === tab.id ? "page" : undefined}
+            aria-label={`${tab.label}${activeTab === tab.id ? ' (現在のページ)' : ''}`}
             className={`w-full group flex items-center gap-6 px-6 py-4 rounded-2xl transition-all duration-300 relative ${
               activeTab === tab.id
                 ? isDark ? 'text-white translate-x-2' : 'text-slate-800 translate-x-2'
-                : isDark ? 'text-white/70 hover:text-white' : 'text-slate-400 hover:text-slate-700'
+                : isDark ? 'text-white/90 hover:text-white' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             {activeTab === tab.id && (
@@ -111,6 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             <svg
               className={`w-6 h-6 transition-transform duration-500 ${activeTab === tab.id ? 'stroke-blue-500 scale-125' : 'stroke-current group-hover:scale-110'}`}
               fill="none" viewBox="0 0 24 24" strokeWidth="2.5"
+              aria-hidden="true"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
             </svg>
@@ -124,22 +134,26 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         <ThemeToggle />
 
         {/* System Status */}
-        <div className={`p-4 rounded-xl border relative overflow-hidden group ${
-          isDark
-            ? 'bg-white/10 border-white/20'
-            : 'bg-slate-50 border-slate-200'
-        }`}>
+        <div
+          role="status"
+          aria-label="システム状態"
+          className={`p-4 rounded-xl border relative overflow-hidden group ${
+            isDark
+              ? 'bg-white/10 border-white/20'
+              : 'bg-slate-50 border-slate-200'
+          }`}
+        >
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-1 h-5 bg-green-500"></div>
-            <span className={`text-[9px] font-bold tracking-[0.2em] uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>システム状態</span>
+            <div className="w-1 h-5 bg-green-500" aria-hidden="true"></div>
+            <span className={`text-[9px] font-bold tracking-[0.2em] uppercase ${isDark ? 'text-white/90' : 'text-slate-600'}`}>システム状態</span>
           </div>
           <div className={`text-xs font-bold italic tracking-tight ${isDark ? 'text-white' : 'text-slate-700'}`}>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" aria-hidden="true"></div>
               <span>エンジン: 稼働中</span>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" aria-hidden="true"></div>
               <span>AI分析: オンライン</span>
             </div>
           </div>

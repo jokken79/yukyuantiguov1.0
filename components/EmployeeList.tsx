@@ -165,25 +165,42 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
 
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 items-stretch sm:items-center">
             <div className="relative w-full sm:w-64 md:w-96">
-              <span className={`absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-base md:text-lg ${isDark ? 'text-white/70' : 'text-slate-400'}`}>/</span>
+              <span className={`absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-base md:text-lg ${isDark ? 'text-white/70' : 'text-slate-400'}`} aria-hidden="true">/</span>
+              <label htmlFor="employee-search" className="sr-only">社員番号・氏名で検索</label>
               <input
+                id="employee-search"
                 type="text"
                 placeholder="社員番号・氏名で検索..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="社員番号・氏名で検索"
                 className={`border rounded-none pl-10 md:pl-14 pr-4 md:pr-8 py-3 md:py-5 w-full focus:outline-none focus:border-blue-500 transition-all font-bold text-sm ${isDark ? 'bg-[#0a0a0a] border-white/20 text-white placeholder:text-white/70' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
               />
             </div>
             <div className="flex gap-2 md:gap-4">
-              <button onClick={handleExportCSV} className={`flex-1 sm:flex-none border px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white/10 border-white/20 hover:bg-white/10 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'}`}>CSV出力</button>
+              <button
+                onClick={handleExportCSV}
+                aria-label="CSV形式で社員一覧をエクスポート"
+                className={`flex-1 sm:flex-none border px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white/10 border-white/20 hover:bg-white/10 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'}`}
+              >
+                CSV出力
+              </button>
               <button
                 onClick={handleExportExcel}
                 disabled={exportingExcel}
+                aria-label="Excel形式で社員一覧をエクスポート"
+                aria-busy={exportingExcel}
                 className={`flex-1 sm:flex-none border px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-green-500/10 border-green-500/30 hover:bg-green-500/20 text-green-400' : 'bg-green-50 border-green-200 hover:bg-green-100 text-green-800'}`}
               >
                 {exportingExcel ? '...' : 'EXCEL出力'}
               </button>
-              <button onClick={handleExportPDF} disabled={exportingPDF} className={`flex-1 sm:flex-none px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white text-black hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'}`}>
+              <button
+                onClick={handleExportPDF}
+                disabled={exportingPDF}
+                aria-label="PDF形式で社員一覧をエクスポート"
+                aria-busy={exportingPDF}
+                className={`flex-1 sm:flex-none px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white text-black hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'}`}
+              >
                 {exportingPDF ? '...' : 'PDF出力'}
               </button>
             </div>
@@ -200,10 +217,12 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-xs font-bold">表示件数:</label>
+            <label htmlFor="items-per-page" className="text-xs font-bold">表示件数:</label>
             <select
+              id="items-per-page"
               value={itemsPerPage}
               onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              aria-label="1ページあたりの表示件数"
               className={`border text-xs font-bold p-2 outline-none ${isDark ? 'bg-black border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
             >
               {ITEMS_PER_PAGE_OPTIONS.map(n => (
@@ -301,27 +320,63 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
       {/* Vista Desktop - Tabla (hidden lg:block) */}
       <div id="employee-list-container" className={`hidden lg:block border overflow-hidden ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[800px]">
+          <table className="w-full text-left min-w-[800px]" role="grid" aria-label="社員一覧テーブル">
             <thead>
-              <tr className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] border-b ${isDark ? 'bg-white/[0.02] text-white/70 border-white/5' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-                <th className="px-4 md:px-10 py-4 md:py-6 cursor-pointer hover:text-blue-500 transition-colors" onClick={() => handleSort('id')}>
-                  社員№<SortIcon columnKey="id" />
+              <tr role="row" className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] border-b ${isDark ? 'bg-white/[0.02] text-white/70 border-white/5' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                <th role="columnheader" scope="col" aria-sort={sortKey === 'id' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-4 md:px-10 py-4 md:py-6">
+                  <button
+                    onClick={() => handleSort('id')}
+                    aria-label={`社員№で並べ替え ${sortKey === 'id' ? (sortOrder === 'asc' ? '昇順' : '降順') : ''}`}
+                    className="flex items-center w-full hover:text-blue-500 transition-colors"
+                  >
+                    社員№<SortIcon columnKey="id" />
+                  </button>
                 </th>
-                <th className="px-4 md:px-10 py-4 md:py-6 cursor-pointer hover:text-blue-500 transition-colors" onClick={() => handleSort('name')}>
-                  氏名 / 派遣先<SortIcon columnKey="name" />
+                <th role="columnheader" scope="col" aria-sort={sortKey === 'name' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-4 md:px-10 py-4 md:py-6">
+                  <button
+                    onClick={() => handleSort('name')}
+                    aria-label={`氏名で並べ替え ${sortKey === 'name' ? (sortOrder === 'asc' ? '昇順' : '降順') : ''}`}
+                    className="flex items-center w-full hover:text-blue-500 transition-colors"
+                  >
+                    氏名 / 派遣先<SortIcon columnKey="name" />
+                  </button>
                 </th>
-                <th className="px-4 md:px-10 py-4 md:py-6 text-center cursor-pointer hover:text-blue-500 transition-colors" onClick={() => handleSort('grantedTotal')}>
-                  付与<SortIcon columnKey="grantedTotal" />
+                <th role="columnheader" scope="col" aria-sort={sortKey === 'grantedTotal' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-4 md:px-10 py-4 md:py-6 text-center">
+                  <button
+                    onClick={() => handleSort('grantedTotal')}
+                    aria-label={`付与日数で並べ替え ${sortKey === 'grantedTotal' ? (sortOrder === 'asc' ? '昇順' : '降順') : ''}`}
+                    className="flex items-center justify-center w-full hover:text-blue-500 transition-colors"
+                  >
+                    付与<SortIcon columnKey="grantedTotal" />
+                  </button>
                 </th>
-                <th className="px-4 md:px-10 py-4 md:py-6 text-center cursor-pointer hover:text-blue-500 transition-colors" onClick={() => handleSort('usedTotal')}>
-                  消化<SortIcon columnKey="usedTotal" />
+                <th role="columnheader" scope="col" aria-sort={sortKey === 'usedTotal' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-4 md:px-10 py-4 md:py-6 text-center">
+                  <button
+                    onClick={() => handleSort('usedTotal')}
+                    aria-label={`消化日数で並べ替え ${sortKey === 'usedTotal' ? (sortOrder === 'asc' ? '昇順' : '降順') : ''}`}
+                    className="flex items-center justify-center w-full hover:text-blue-500 transition-colors"
+                  >
+                    消化<SortIcon columnKey="usedTotal" />
+                  </button>
                 </th>
-                <th className="px-4 md:px-10 py-4 md:py-6 text-center cursor-pointer hover:text-blue-500 transition-colors" onClick={() => handleSort('balance')}>
-                  残日数<SortIcon columnKey="balance" />
+                <th role="columnheader" scope="col" aria-sort={sortKey === 'balance' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-4 md:px-10 py-4 md:py-6 text-center">
+                  <button
+                    onClick={() => handleSort('balance')}
+                    aria-label={`残日数で並べ替え ${sortKey === 'balance' ? (sortOrder === 'asc' ? '昇順' : '降順') : ''}`}
+                    className="flex items-center justify-center w-full hover:text-blue-500 transition-colors"
+                  >
+                    残日数<SortIcon columnKey="balance" />
+                  </button>
                 </th>
-                <th className="px-4 md:px-10 py-4 md:py-6 text-center">年5日義務化</th>
-                <th className="px-4 md:px-10 py-4 md:py-6 text-right cursor-pointer hover:text-blue-500 transition-colors" onClick={() => handleSort('status')}>
-                  状態<SortIcon columnKey="status" />
+                <th role="columnheader" scope="col" className="px-4 md:px-10 py-4 md:py-6 text-center">年5日義務化</th>
+                <th role="columnheader" scope="col" aria-sort={sortKey === 'status' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-4 md:px-10 py-4 md:py-6 text-right">
+                  <button
+                    onClick={() => handleSort('status')}
+                    aria-label={`状態で並べ替え ${sortKey === 'status' ? (sortOrder === 'asc' ? '昇順' : '降順') : ''}`}
+                    className="flex items-center justify-end w-full hover:text-blue-500 transition-colors"
+                  >
+                    状態<SortIcon columnKey="status" />
+                  </button>
                 </th>
               </tr>
             </thead>
@@ -405,11 +460,12 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-          <div className="flex items-center gap-2">
+        <nav aria-label="ページネーション" className="flex flex-col sm:flex-row justify-center items-center gap-4">
+          <div className="flex items-center gap-2" role="group" aria-label="ページ移動ボタン">
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
+              aria-label="最初のページへ"
               className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
             >
               ««
@@ -417,13 +473,14 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
+              aria-label="前のページへ"
               className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
             >
               «
             </button>
 
             {/* Page numbers */}
-            <div className="flex gap-1">
+            <div className="flex gap-1" role="group" aria-label="ページ番号">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum: number;
                 if (totalPages <= 5) {
@@ -439,6 +496,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                   <button
                     key={pageNum}
                     onClick={() => setCurrentPage(pageNum)}
+                    aria-label={`ページ ${pageNum} に移動`}
+                    aria-current={currentPage === pageNum ? "page" : undefined}
                     className={`w-8 h-8 text-xs font-bold transition-all ${
                       currentPage === pageNum
                         ? 'bg-blue-500 text-white'
@@ -454,6 +513,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
+              aria-label="次のページへ"
               className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
             >
               »
@@ -461,15 +521,16 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
+              aria-label="最後のページへ"
               className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
             >
               »»
             </button>
           </div>
-          <div className={`text-xs font-bold ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
+          <div aria-live="polite" className={`text-xs font-bold ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
             {currentPage} / {totalPages} ページ
           </div>
-        </div>
+        </nav>
       )}
 
       {/* Modal de Historial de Yukyu */}
@@ -478,6 +539,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
           <div
             className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
             onClick={() => setShowHistoryModal(false)}
+            role="presentation"
           >
             <div
               className={`max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-3xl p-8 ${isDark ? 'bg-[#0a0a0a] border border-white/20' : 'bg-white border border-slate-200'}`}
@@ -485,7 +547,11 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
               role="dialog"
               aria-modal="true"
               aria-labelledby="history-modal-title"
+              aria-describedby="history-modal-description"
             >
+            <p id="history-modal-description" className="sr-only">
+              社員の有給休暇取得履歴を表示しています。ESCキーで閉じることができます。
+            </p>
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -498,9 +564,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
               </div>
               <button
                 onClick={() => setShowHistoryModal(false)}
+                aria-label="閉じる"
                 className={`text-2xl w-10 h-10 rounded-full transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}
               >
-                ✕
+                <span aria-hidden="true">✕</span>
               </button>
             </div>
 

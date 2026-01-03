@@ -304,16 +304,20 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left: Input Form */}
         <div className="lg:col-span-7">
-          <form onSubmit={handleSubmit} className={`p-8 rounded-3xl space-y-6 ${isDark ? 'bg-white/10 border border-white/20' : 'bg-white border border-slate-200 shadow-lg'}`}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className={`p-8 rounded-3xl space-y-6 ${isDark ? 'bg-white/10 border border-white/20' : 'bg-white border border-slate-200 shadow-lg'}`} aria-label="有給休暇申請フォーム">
+            <fieldset className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <legend className="sr-only">従業員選択</legend>
               <div className="space-y-2">
-                <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>工場（派遣先）</label>
+                <label htmlFor="client-select" className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>工場（派遣先）</label>
                 <select
+                  id="client-select"
                   value={selectedClient}
                   onChange={(e) => {
                     setSelectedClient(e.target.value);
                     setFormData(prev => ({ ...prev, employeeId: '' }));
                   }}
+                  aria-label="工場を選択してください"
+                  aria-required="true"
                   className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 >
@@ -323,11 +327,15 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
               </div>
 
               <div className="space-y-2">
-                <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>従業員名</label>
+                <label htmlFor="employee-select" className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>従業員名</label>
                 <select
+                  id="employee-select"
                   value={formData.employeeId}
                   onChange={(e) => setFormData(prev => ({ ...prev, employeeId: e.target.value }))}
                   disabled={!selectedClient}
+                  aria-label="従業員を選択してください"
+                  aria-required="true"
+                  aria-disabled={!selectedClient}
                   className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 >
@@ -339,7 +347,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                   ))}
                 </select>
               </div>
-            </div>
+            </fieldset>
 
             {/* Prominent Balance Indicator - shown when employee is selected */}
             {selectedEmployee && formData.type === 'paid' && (
@@ -382,32 +390,38 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <fieldset className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <legend className="sr-only">休暇詳細</legend>
               <div className="space-y-2">
-                <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>取得予定日</label>
+                <label htmlFor="leave-date" className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>取得予定日</label>
                 <input
+                  id="leave-date"
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                   min={dateConstraints.min}
                   max={dateConstraints.max}
                   aria-label="取得予定日を選択してください"
+                  aria-describedby={selectedEmployee && allLeaveHistory.includes(formData.date) ? "date-warning" : undefined}
+                  aria-invalid={selectedEmployee && allLeaveHistory.includes(formData.date) ? "true" : "false"}
                   className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 />
                 {/* Warning if date already taken */}
                 {selectedEmployee && allLeaveHistory.includes(formData.date) && (
-                  <p className="text-xs text-orange-500 font-medium flex items-center gap-1 mt-1">
-                    <span>⚠️</span> この日付は既に取得済みです
+                  <p id="date-warning" role="alert" className="text-xs text-orange-500 font-medium flex items-center gap-1 mt-1">
+                    <span aria-hidden="true">⚠️</span> この日付は既に取得済みです
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>休暇の種類</label>
+                <label htmlFor="leave-type" className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>休暇の種類</label>
                 <select
+                  id="leave-type"
                   value={formData.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                  aria-label="休暇の種類を選択してください"
                   className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                 >
                   <option value="paid" className={isDark ? 'bg-black' : 'bg-white'}>有給休暇 (全休)</option>
@@ -415,14 +429,16 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                   <option value="unpaid" className={isDark ? 'bg-black' : 'bg-white'}>欠勤</option>
                 </select>
               </div>
-            </div>
+            </fieldset>
 
             <div className="space-y-2">
-              <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>備考 / 理由</label>
+              <label htmlFor="leave-note" className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>備考 / 理由</label>
               <textarea
+                id="leave-note"
                 value={formData.note}
                 onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
                 placeholder="私用、冠婚葬祭など..."
+                aria-label="備考や理由を入力（任意）"
                 className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none h-24 resize-none ${isDark ? 'bg-white/10 border border-white/20 text-white placeholder:text-white/70' : 'bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
               />
             </div>

@@ -285,9 +285,11 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4" role="group" aria-label="申請状態フィルター">
         <button
           onClick={() => setFilterStatus('pending')}
+          aria-label={`保留中の申請を表示 (${stats.pending}件)`}
+          aria-pressed={filterStatus === 'pending'}
           className={`p-4 md:p-6 border transition-all ${filterStatus === 'pending' ? 'border-yellow-500 bg-yellow-500/10' : isDark ? 'border-white/20 bg-white/10 hover:border-yellow-500/50' : 'border-slate-200 bg-white hover:border-yellow-500/50 shadow-sm'}`}
         >
           <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>保留中</p>
@@ -295,6 +297,8 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
         </button>
         <button
           onClick={() => setFilterStatus('approved')}
+          aria-label={`承認済の申請を表示 (${stats.approved}件)`}
+          aria-pressed={filterStatus === 'approved'}
           className={`p-4 md:p-6 border transition-all ${filterStatus === 'approved' ? 'border-green-500 bg-green-500/10' : isDark ? 'border-white/20 bg-white/10 hover:border-green-500/50' : 'border-slate-200 bg-white hover:border-green-500/50 shadow-sm'}`}
         >
           <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>承認済</p>
@@ -302,6 +306,8 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
         </button>
         <button
           onClick={() => setFilterStatus('rejected')}
+          aria-label={`却下された申請を表示 (${stats.rejected}件)`}
+          aria-pressed={filterStatus === 'rejected'}
           className={`p-4 md:p-6 border transition-all ${filterStatus === 'rejected' ? 'border-red-500 bg-red-500/10' : isDark ? 'border-white/20 bg-white/10 hover:border-red-500/50' : 'border-slate-200 bg-white hover:border-red-500/50 shadow-sm'}`}
         >
           <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>却下</p>
@@ -309,6 +315,8 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
         </button>
         <button
           onClick={() => setFilterStatus('all')}
+          aria-label={`すべての申請を表示 (${stats.total}件)`}
+          aria-pressed={filterStatus === 'all'}
           className={`p-4 md:p-6 border transition-all ${filterStatus === 'all' ? 'border-blue-500 bg-blue-500/10' : isDark ? 'border-white/20 bg-white/10 hover:border-blue-500/50' : 'border-slate-200 bg-white hover:border-blue-500/50 shadow-sm'}`}
         >
           <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>全件</p>
@@ -316,13 +324,21 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
         </button>
       </div>
 
+      {/* Live region for selection count */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {selectedIds.size > 0 ? `${selectedIds.size}件の申請を選択中` : '選択なし'}
+      </div>
+
       {/* Filters */}
-      <div className={`flex flex-wrap gap-3 md:gap-4 p-3 md:p-4 border ${isDark ? 'bg-white/10 border-white/20' : 'bg-white border-slate-200 shadow-sm'}`}>
+      <fieldset className={`flex flex-wrap gap-3 md:gap-4 p-3 md:p-4 border ${isDark ? 'bg-white/10 border-white/20' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <legend className="sr-only">申請フィルター</legend>
         <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
-          <label className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>派遣先</label>
+          <label htmlFor="filter-client" className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>派遣先</label>
           <select
+            id="filter-client"
             value={filterClient}
             onChange={(e) => setFilterClient(e.target.value)}
+            aria-label="派遣先でフィルター"
             className={`border text-xs font-bold p-2 outline-none ${isDark ? 'bg-black border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
           >
             <option value="">すべて</option>
@@ -330,32 +346,37 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>開始日</label>
+          <label htmlFor="filter-date-from" className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>開始日</label>
           <input
+            id="filter-date-from"
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
+            aria-label="開始日でフィルター"
             className={`border text-xs font-bold p-2 outline-none ${isDark ? 'bg-black border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>終了日</label>
+          <label htmlFor="filter-date-to" className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>終了日</label>
           <input
+            id="filter-date-to"
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
+            aria-label="終了日でフィルター"
             className={`border text-xs font-bold p-2 outline-none ${isDark ? 'bg-black border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
           />
         </div>
         <div className="flex items-end">
           <button
             onClick={() => { setFilterClient(''); setDateFrom(''); setDateTo(''); setFilterStatus('all'); }}
+            aria-label="すべてのフィルターをリセット"
             className={`px-3 md:px-4 py-2 text-xs font-bold transition-all ${isDark ? 'text-white/80 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}
           >
             リセット
           </button>
         </div>
-      </div>
+      </fieldset>
 
       {/* Vista Mobile - Cards (lg:hidden) */}
       <div className="lg:hidden space-y-3">
@@ -381,6 +402,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                         type="checkbox"
                         checked={selectedIds.has(record.id!)}
                         onChange={() => toggleSelect(record.id!)}
+                        aria-label={`${emp ? getDisplayName(emp.name) : '不明'}の申請を選択`}
                         className="w-4 h-4"
                       />
                     )}
@@ -453,27 +475,28 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
       <div className={`hidden lg:block border overflow-hidden ${isDark ? 'border-white/20' : 'border-slate-200 shadow-sm'}`}>
         {filteredRecords.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-[700px]" role="grid" aria-label="申請一覧テーブル">
               <thead className={isDark ? 'bg-white/10' : 'bg-slate-50'}>
-                <tr className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
+                <tr role="row" className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
                   {stats.pending > 0 && filterStatus !== 'approved' && filterStatus !== 'rejected' && (
-                    <th className="p-3 md:p-4 text-left w-10">
+                    <th role="columnheader" scope="col" className="p-3 md:p-4 text-left w-10">
                       <input
                         type="checkbox"
                         checked={selectedIds.size === pendingRecords.length && pendingRecords.length > 0}
                         onChange={handleSelectAll}
+                        aria-label={selectedIds.size === pendingRecords.length ? 'すべての保留中申請の選択を解除' : 'すべての保留中申請を選択'}
                         className="w-4 h-4"
                       />
                     </th>
                   )}
-                  <th className="p-3 md:p-4 text-left">状態</th>
-                  <th className="p-3 md:p-4 text-left">取得日</th>
-                  <th className="p-3 md:p-4 text-left">社員</th>
-                  <th className="p-3 md:p-4 text-left hidden md:table-cell">派遣先</th>
-                  <th className="p-3 md:p-4 text-left">種類</th>
-                  <th className="p-3 md:p-4 text-left hidden lg:table-cell">申請日</th>
-                  <th className="p-3 md:p-4 text-left hidden lg:table-cell">備考</th>
-                  <th className="p-3 md:p-4 text-center">操作</th>
+                  <th role="columnheader" scope="col" className="p-3 md:p-4 text-left">状態</th>
+                  <th role="columnheader" scope="col" className="p-3 md:p-4 text-left">取得日</th>
+                  <th role="columnheader" scope="col" className="p-3 md:p-4 text-left">社員</th>
+                  <th role="columnheader" scope="col" className="p-3 md:p-4 text-left hidden md:table-cell">派遣先</th>
+                  <th role="columnheader" scope="col" className="p-3 md:p-4 text-left">種類</th>
+                  <th role="columnheader" scope="col" className="p-3 md:p-4 text-left hidden lg:table-cell">申請日</th>
+                  <th role="columnheader" scope="col" className="p-3 md:p-4 text-left hidden lg:table-cell">備考</th>
+                  <th role="columnheader" scope="col" className="p-3 md:p-4 text-center">操作</th>
                 </tr>
               </thead>
               <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
@@ -482,49 +505,52 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                   const isPending = record.status === 'pending';
 
                   return (
-                    <tr key={record.id} className={`transition-all ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-slate-50'}`}>
+                    <tr key={record.id} role="row" className={`transition-all ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-slate-50'}`}>
                       {stats.pending > 0 && filterStatus !== 'approved' && filterStatus !== 'rejected' && (
-                        <td className="p-3 md:p-4">
+                        <td role="gridcell" className="p-3 md:p-4">
                           {isPending && (
                             <input
                               type="checkbox"
                               checked={selectedIds.has(record.id!)}
                               onChange={() => toggleSelect(record.id!)}
+                              aria-label={`${emp ? getDisplayName(emp.name) : '不明'}の${record.date}の申請を選択`}
                               className="w-4 h-4"
                             />
                           )}
                         </td>
                       )}
-                      <td className="p-3 md:p-4">{getStatusBadge(record.status)}</td>
-                      <td className={`p-3 md:p-4 font-bold text-sm md:text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{record.date}</td>
-                      <td className="p-3 md:p-4">
+                      <td role="gridcell" className="p-3 md:p-4">{getStatusBadge(record.status)}</td>
+                      <td role="gridcell" className={`p-3 md:p-4 font-bold text-sm md:text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{record.date}</td>
+                      <td role="gridcell" className="p-3 md:p-4">
                         <div className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>{emp ? getDisplayName(emp.name) : '不明'}</div>
                         <div className={`text-[10px] md:text-xs ${isDark ? 'text-white/80' : 'text-slate-500'}`}>№{record.employeeId}</div>
                         <div className={`text-[10px] md:hidden ${isDark ? 'text-white/70' : 'text-slate-400'}`}>{emp?.client || ''}</div>
                       </td>
-                      <td className={`p-3 md:p-4 text-xs md:text-sm hidden md:table-cell ${isDark ? 'text-white/60' : 'text-slate-600'}`}>{emp?.client || '不明'}</td>
-                      <td className="p-3 md:p-4">
+                      <td role="gridcell" className={`p-3 md:p-4 text-xs md:text-sm hidden md:table-cell ${isDark ? 'text-white/60' : 'text-slate-600'}`}>{emp?.client || '不明'}</td>
+                      <td role="gridcell" className="p-3 md:p-4">
                         <span className={`text-[10px] md:text-xs font-bold ${record.type === 'paid' ? 'text-blue-500' : record.type === 'special' ? 'text-purple-500' : 'text-gray-400'}`}>
                           {record.type === 'paid' ? '有給' : record.type === 'special' ? '特別' : '欠勤'}
                         </span>
                       </td>
-                      <td className={`p-3 md:p-4 text-xs hidden lg:table-cell ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
+                      <td role="gridcell" className={`p-3 md:p-4 text-xs hidden lg:table-cell ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
                         {new Date(record.createdAt).toLocaleDateString('ja-JP')}
                       </td>
-                      <td className={`p-3 md:p-4 text-xs max-w-[150px] truncate hidden lg:table-cell ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
+                      <td role="gridcell" className={`p-3 md:p-4 text-xs max-w-[150px] truncate hidden lg:table-cell ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
                         {record.note || '-'}
                       </td>
-                      <td className="p-3 md:p-4">
+                      <td role="gridcell" className="p-3 md:p-4">
                         {isPending ? (
-                          <div className="flex gap-1 md:gap-2 justify-center">
+                          <div className="flex gap-1 md:gap-2 justify-center" role="group" aria-label="申請操作">
                             <button
                               onClick={() => handleApprove(record.id!)}
+                              aria-label={`${emp ? getDisplayName(emp.name) : '不明'}の${record.date}の申請を承認`}
                               className="px-2 md:px-3 py-1 bg-green-500/20 hover:bg-green-500/40 text-green-500 text-[10px] md:text-xs font-bold rounded transition-all"
                             >
                               承認
                             </button>
                             <button
                               onClick={() => handleReject(record.id!)}
+                              aria-label={`${emp ? getDisplayName(emp.name) : '不明'}の${record.date}の申請を却下`}
                               className="px-2 md:px-3 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-500 text-[10px] md:text-xs font-bold rounded transition-all"
                             >
                               却下
@@ -563,6 +589,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowBulkPreview(false)}
+            role="presentation"
           >
             <div
               className={`max-w-2xl w-full max-h-[80vh] flex flex-col rounded-lg border ${
@@ -572,7 +599,11 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
               role="dialog"
               aria-modal="true"
               aria-labelledby="bulk-preview-title"
+              aria-describedby="bulk-preview-description"
             >
+            <p id="bulk-preview-description" className="sr-only">
+              選択した申請の一括承認を確認するダイアログです。ESCキーで閉じることができます。
+            </p>
             {/* Header */}
             <div className={`p-4 md:p-6 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
               <div className="flex items-center justify-between">

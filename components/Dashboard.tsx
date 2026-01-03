@@ -197,23 +197,31 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       </header>
 
       {/* KPI Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {kpis.map((kpi, i) => (
-          <div key={i} className={`p-12 border-t-4 transition-all ${
-            kpi.color === 'red' && kpi.value > 0
-              ? 'border-red-600 shadow-[0_0_30px_rgba(255,0,76,0.1)]'
-              : isDark ? 'border-white/5' : 'border-slate-200'
-          } ${isDark ? 'bg-[#0a0a0a] hover:bg-[#111]' : 'bg-white hover:bg-slate-50 shadow-sm'}`}>
-            <p className={`text-[10px] font-black mb-8 tracking-[0.3em] uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>{kpi.label}</p>
-            <div className="flex items-baseline gap-3">
-              <h3 className={`text-7xl font-black tabular-nums tracking-tighter italic ${
-                kpi.color === 'red' && kpi.value > 0 ? 'text-red-600' : isDark ? 'text-white' : 'text-slate-800'
-              }`}>{kpi.value}</h3>
-              <span className={`text-xs font-black uppercase italic ${isDark ? 'text-white/70' : 'text-slate-400'}`}>{kpi.suffix}</span>
+      <section aria-labelledby="kpi-section-title" role="region">
+        <h3 id="kpi-section-title" className="sr-only">主要指標 (KPI)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {kpis.map((kpi, i) => (
+            <div
+              key={i}
+              role="group"
+              aria-label={`${kpi.label}: ${kpi.value}${kpi.suffix}`}
+              className={`p-12 border-t-4 transition-all ${
+                kpi.color === 'red' && kpi.value > 0
+                  ? 'border-red-600 shadow-[0_0_30px_rgba(255,0,76,0.1)]'
+                  : isDark ? 'border-white/5' : 'border-slate-200'
+              } ${isDark ? 'bg-[#0a0a0a] hover:bg-[#111]' : 'bg-white hover:bg-slate-50 shadow-sm'}`}
+            >
+              <p className={`text-[10px] font-black mb-8 tracking-[0.3em] uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>{kpi.label}</p>
+              <div className="flex items-baseline gap-3">
+                <span className={`text-7xl font-black tabular-nums tracking-tighter italic ${
+                  kpi.color === 'red' && kpi.value > 0 ? 'text-red-600' : isDark ? 'text-white' : 'text-slate-800'
+                }`} aria-hidden="true">{kpi.value}</span>
+                <span className={`text-xs font-black uppercase italic ${isDark ? 'text-white/70' : 'text-slate-400'}`} aria-hidden="true">{kpi.suffix}</span>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </section>
 
       <div id="dashboard-full-view" className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 

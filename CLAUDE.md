@@ -109,6 +109,8 @@ Two file types with specific sheet requirements:
 - **Theme**: Dark mode default, stored in localStorage (`uns-yukyu-theme`), respects system preference
 - **Path alias**: `@/*` resolves to project root
 - **Loading patterns**: Skeleton screens on initial load and tab switches (300-600ms delays)
+- **Logo**: Imagen externa `public/uns-logo.png` con fallback a texto CSS
+- **TOP 10 使用者**: Nombres mostrados en カタカナ usando `getDisplayName()`
 
 ## Accesibilidad (a11y) - WCAG 2.1 AA
 
@@ -145,6 +147,8 @@ La aplicación implementa mejoras de accesibilidad en todos los componentes prin
 **Dashboard.tsx**
 - Sección KPI con `role="region"` y `aria-labelledby`
 - Cards KPI con `role="group"` y `aria-label` descriptivos
+- 消化合計 KPI: Validación de NaN/undefined para evitar mostrar "NaN日"
+- TOP 10 使用者: Usa `displayName` con カタカナ y tooltip mejorado
 
 **ThemeToggle.tsx**
 - `role="switch"` con `aria-checked`
@@ -167,6 +171,46 @@ Leave requests follow a three-state lifecycle:
 3. **rejected** - Manager rejected, no balance impact
 
 **Important**: Only `pending` requests can be approved/rejected. Approved records cannot be deleted (data integrity protection).
+
+### 半日有給 (Half-Day Leave) Support
+
+El sistema soporta solicitudes de medio día (0.5日):
+
+**LeaveRecord.duration field**:
+- `'full'` - Día completo (1.0日) - default
+- `'half'` - Medio día (0.5日)
+
+**Encoding en yukyuDates[]**:
+- Día completo: `"YYYY-MM-DD"`
+- Medio día: `"YYYY-MM-DD:half"`
+
+**Cálculo de balance** (`balanceCalculator.ts`):
+```typescript
+function parseYukyuDate(dateStr: string): { date: string; value: number } {
+  if (dateStr.endsWith(':half')) {
+    return { date: dateStr.replace(':half', ''), value: 0.5 };
+  }
+  return { date: dateStr, value: 1 };
+}
+```
+
+**UI indicators**:
+- LeaveRequest: Botones 全日/半日 para seleccionar duración
+- ApplicationManagement: Muestra "(半日)" o "(全日)" junto al tipo
+- EmployeeList: Muestra "(半)" junto a fechas de medio día
+- AccountingReports: Muestra "(半)" y calcula totales correctamente
+
+### Fin de Semana Permitido (4x2 Shifts)
+
+El sistema **NO bloquea** sábados y domingos para permitir trabajadores con turnos 4x2 (trabajan 4 días, descansan 2). La validación de fin de semana fue eliminada de `LeaveRequest.tsx`.
+
+### Reportes Contables (AccountingReports)
+
+**Selector de año dinámico**: Muestra desde 2024 hasta el año actual (no hardcodeado).
+
+**Cálculo de medios días**: Los reportes calculan correctamente 0.5 para `duration: 'half'`.
+
+**Indicador visual**: Las fechas de medio día muestran "(半)" en amarillo.
 
 ## Sistema de Períodos de Yukyu (periodHistory)
 

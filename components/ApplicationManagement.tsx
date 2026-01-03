@@ -229,7 +229,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
               <h2 className={`text-3xl md:text-5xl lg:text-6xl font-black italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-800'}`}>申請管理</h2>
             </div>
             <p className={`font-bold tracking-widest ml-6 md:ml-8 text-[10px] md:text-sm ${isDark ? 'text-white/30' : 'text-slate-500'}`}>
-              Application Management System
+              申請管理システム
             </p>
           </div>
 

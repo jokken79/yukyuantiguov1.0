@@ -138,16 +138,16 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
               />
             </div>
             <div className="flex gap-2 md:gap-4">
-              <button onClick={handleExportCSV} className={`flex-1 sm:flex-none border px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'}`}>CSV</button>
+              <button onClick={handleExportCSV} className={`flex-1 sm:flex-none border px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'}`}>CSV出力</button>
               <button
                 onClick={handleExportExcel}
                 disabled={exportingExcel}
                 className={`flex-1 sm:flex-none border px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-green-500/10 border-green-500/30 hover:bg-green-500/20 text-green-400' : 'bg-green-50 border-green-200 hover:bg-green-100 text-green-800'}`}
               >
-                {exportingExcel ? '...' : 'EXCEL'}
+                {exportingExcel ? '...' : 'EXCEL出力'}
               </button>
               <button onClick={handleExportPDF} disabled={exportingPDF} className={`flex-1 sm:flex-none px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white text-black hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'}`}>
-                {exportingPDF ? '...' : 'PDF'}
+                {exportingPDF ? '...' : 'PDF出力'}
               </button>
             </div>
           </div>

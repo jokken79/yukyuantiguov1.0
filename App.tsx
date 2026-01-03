@@ -1,6 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -12,6 +14,20 @@ import ApplicationManagement from './components/ApplicationManagement';
 import { DashboardSkeleton, EmployeeListSkeleton, ApplicationSkeleton, TableSkeleton } from './components/Skeleton';
 import { db } from './services/db';
 import { AppData } from './types';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
+// Variantes de animación para transiciones de página
+const pageVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 }
+};
+
+const pageTransition = {
+  type: 'tween',
+  ease: 'easeInOut',
+  duration: 0.25
+};
 
 // Inner App component that uses theme context
 const AppContent: React.FC = () => {
@@ -38,6 +54,59 @@ const AppContent: React.FC = () => {
   const refreshData = () => {
     setAppData(db.loadData());
   };
+
+  // Atajos de teclado globales
+  const shortcuts = useMemo(() => [
+    {
+      key: 'd',
+      ctrl: true,
+      action: () => handleTabChange('dashboard'),
+      description: 'ダッシュボード'
+    },
+    {
+      key: 'e',
+      ctrl: true,
+      action: () => handleTabChange('employees'),
+      description: '社員一覧'
+    },
+    {
+      key: 'n',
+      ctrl: true,
+      action: () => handleTabChange('leave-request'),
+      description: '新規申請'
+    },
+    {
+      key: 'a',
+      ctrl: true,
+      action: () => handleTabChange('applications'),
+      description: '申請管理'
+    },
+    {
+      key: 'r',
+      ctrl: true,
+      action: () => handleTabChange('reports'),
+      description: 'レポート'
+    },
+    {
+      key: 's',
+      ctrl: true,
+      action: () => handleTabChange('sync'),
+      description: 'Excel同期'
+    },
+    {
+      key: '/',
+      ctrl: false,
+      action: () => {
+        toast('⌨️ ショートカット一覧\n\nCtrl+D: ダッシュボード\nCtrl+E: 社員一覧\nCtrl+N: 新規申請\nCtrl+A: 申請管理\nCtrl+R: レポート\nCtrl+S: Excel同期', {
+          duration: 5000,
+          style: { whiteSpace: 'pre-line' }
+        });
+      },
+      description: 'ショートカット一覧'
+    }
+  ], []);
+
+  useKeyboardShortcuts(shortcuts);
 
   const renderSkeleton = () => {
     switch (activeTab) {
@@ -96,9 +165,19 @@ const AppContent: React.FC = () => {
       <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
 
       <main className={`flex-1 overflow-y-auto relative z-10 custom-scrollbar ${isDark ? '' : 'bg-slate-50'}`}>
-        <div className="min-h-screen">
-          {renderContent()}
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={pageVariants}
+            transition={pageTransition}
+            className="min-h-screen"
+          >
+            {renderContent()}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* React Hot Toast Notifications */}

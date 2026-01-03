@@ -4,6 +4,7 @@ import { AppData, Employee, LeaveRecord } from '../types';
 import { exportToPDF } from '../services/exportService';
 import { useTheme } from '../contexts/ThemeContext';
 import { getDisplayName } from '../services/nameConverter';
+import DigitalHanko from './DigitalHanko';
 
 interface AccountingReportsProps {
   data: AppData;
@@ -200,10 +201,14 @@ const AccountingReports: React.FC<AccountingReportsProps> = ({ data }) => {
               </div>
            </div>
            <div className="text-right">
-              <p className={`text-[10px] font-black italic mb-4 ${isDark ? 'text-white/70' : 'text-slate-400'}`}>有給PROエンジン承認済</p>
-              <div className={`h-16 w-48 border flex items-center justify-center italic font-black select-none ${isDark ? 'bg-white/5 border-white/20 text-white/10' : 'bg-slate-100 border-slate-200 text-slate-300'}`}>
-                電子印鑑
+              <p className={`text-[10px] font-black italic mb-3 ${isDark ? 'text-white/70' : 'text-slate-400'}`}>有給PROエンジン承認済</p>
+              <div className="flex items-center justify-end gap-4">
+                <DigitalHanko name="承認" size={56} variant="approval" />
+                <DigitalHanko name="経理" size={56} variant="approval" />
               </div>
+              <p className={`text-[8px] mt-2 ${isDark ? 'text-white/40' : 'text-slate-300'}`}>
+                電子印鑑 / Digital Seal
+              </p>
            </div>
         </div>
       </div>

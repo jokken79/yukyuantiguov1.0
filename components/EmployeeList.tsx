@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import FocusTrap from 'focus-trap-react';
+import Fuse from 'fuse.js';
 import { Employee, PeriodHistory } from '../types';
 import { exportEmployeesToCSV, exportToPDF, exportEmployeesToExcel } from '../services/exportService';
 import { getDisplayName } from '../services/nameConverter';
@@ -38,15 +39,39 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [showHistoryModal]);
 
-  // Filter employees
+  // Configurar Fuse.js para búsqueda fuzzy
+  const fuse = useMemo(() => {
+    // Agregar displayName a cada empleado para búsqueda
+    const employeesWithDisplayName = employees.map(e => ({
+      ...e,
+      displayName: getDisplayName(e.name)
+    }));
+
+    return new Fuse(employeesWithDisplayName, {
+      keys: [
+        { name: 'name', weight: 0.3 },
+        { name: 'displayName', weight: 0.3 },
+        { name: 'id', weight: 0.2 },
+        { name: 'client', weight: 0.15 },
+        { name: 'nameKana', weight: 0.05 }
+      ],
+      threshold: 0.4, // 60% similitud mínima
+      includeScore: true,
+      ignoreLocation: true,
+      minMatchCharLength: 1
+    });
+  }, [employees]);
+
+  // Filter employees con búsqueda fuzzy
   const filtered = useMemo(() => {
-    return employees.filter(e =>
-      e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.id.includes(searchTerm) ||
-      e.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getDisplayName(e.name).includes(searchTerm)
-    );
-  }, [employees, searchTerm]);
+    if (!searchTerm.trim()) {
+      return employees;
+    }
+
+    const results = fuse.search(searchTerm);
+    // Retornar solo los items originales (sin displayName agregado)
+    return results.map(r => employees.find(e => e.id === r.item.id)!).filter(Boolean);
+  }, [employees, searchTerm, fuse]);
 
   // Sort employees
   const sorted = useMemo(() => {

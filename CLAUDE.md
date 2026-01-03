@@ -110,6 +110,48 @@ Two file types with specific sheet requirements:
 - **Path alias**: `@/*` resolves to project root
 - **Loading patterns**: Skeleton screens on initial load and tab switches (300-600ms delays)
 
+## Accesibilidad (a11y) - WCAG 2.1 AA
+
+La aplicación implementa mejoras de accesibilidad en todos los componentes principales:
+
+### CSS Global (`index.html`)
+- `:focus-visible` con outline azul para navegación por teclado
+- `@media (prefers-reduced-motion)` para usuarios sensibles a animaciones
+- Clase `.sr-only` para contenido exclusivo de screen readers
+
+### Componentes con ARIA
+
+**Sidebar.tsx**
+- `role="navigation"` con `aria-label="メインナビゲーション"`
+- `aria-current="page"` en tab activo
+- `aria-expanded` y `aria-controls` en hamburger móvil
+
+**EmployeeList.tsx**
+- Tabla con `role="grid"` y `aria-sort` en headers ordenables
+- Paginación con `<nav aria-label>` y `aria-current="page"`
+- Modal con `aria-modal`, `aria-labelledby`, `aria-describedby`
+
+**ApplicationManagement.tsx**
+- Filtros de estado con `aria-pressed`
+- Checkboxes con `aria-label` dinámico (nombre del empleado)
+- Live region `aria-live="polite"` para conteo de selección
+- Tabla con `role="grid"` y `role="gridcell"`
+
+**LeaveRequest.tsx**
+- Formularios con `<fieldset>` y `<legend>` semánticos
+- Labels con `htmlFor` vinculados a inputs
+- `aria-invalid` y `aria-describedby` para validación de errores
+
+**Dashboard.tsx**
+- Sección KPI con `role="region"` y `aria-labelledby`
+- Cards KPI con `role="group"` y `aria-label` descriptivos
+
+**ThemeToggle.tsx**
+- `role="switch"` con `aria-checked`
+- `aria-hidden="true"` en iconos decorativos
+
+### Puntuación estimada: 8/10 WCAG 2.1 AA
+
 ## Key Business Logic
 
 ### Legal Compliance Calculation

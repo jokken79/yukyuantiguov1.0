@@ -33,7 +33,7 @@ const AccountingReports: React.FC<AccountingReportsProps> = ({ data }) => {
       return d >= period.start && d <= period.end && r.type === 'paid' && r.status === 'approved';
     });
 
-    const summary: Record<string, { emp: Employee; days: string[]; total: number }> = {};
+    const summary: Record<string, { emp: Employee; days: { date: string; isHalf: boolean }[]; total: number }> = {};
 
     recordsInPeriod.forEach(r => {
       const emp = data.employees.find(e => e.id === r.employeeId);
@@ -42,8 +42,9 @@ const AccountingReports: React.FC<AccountingReportsProps> = ({ data }) => {
       if (!summary[r.employeeId]) {
         summary[r.employeeId] = { emp, days: [], total: 0 };
       }
-      summary[r.employeeId].days.push(r.date);
-      summary[r.employeeId].total += 1;
+      const isHalf = r.duration === 'half';
+      summary[r.employeeId].days.push({ date: r.date, isHalf });
+      summary[r.employeeId].total += isHalf ? 0.5 : 1;
     });
 
     return Object.values(summary).sort((a, b) => a.emp.client.localeCompare(b.emp.client));
@@ -79,7 +80,7 @@ const AccountingReports: React.FC<AccountingReportsProps> = ({ data }) => {
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                 className={`border text-xs font-black p-2 outline-none focus:border-yellow-500 ${isDark ? 'bg-black border-white/20 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
               >
-                {[2024, 2025].map(y => <option key={y} value={y}>{y}年</option>)}
+                {Array.from({ length: new Date().getFullYear() - 2023 }, (_, i) => 2024 + i).map(y => <option key={y} value={y}>{y}年</option>)}
               </select>
               <select
                 value={selectedMonth}
@@ -155,9 +156,9 @@ const AccountingReports: React.FC<AccountingReportsProps> = ({ data }) => {
                     <td className={`py-8 px-4 font-black text-xl italic group-hover:translate-x-1 transition-transform ${isDark ? 'text-white' : 'text-slate-800'}`}>{getDisplayName(emp.name)}</td>
                     <td className="py-8 px-4 text-center">
                       <div className="flex flex-wrap justify-center gap-2">
-                        {days.map(d => (
-                          <span key={d} className={`px-3 py-1 border text-[9px] font-black italic ${isDark ? 'bg-white/5 border-white/20 text-white/60' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
-                            {d.split('-').slice(1).join('/')}
+                        {days.map((d, idx) => (
+                          <span key={`${d.date}-${idx}`} className={`px-3 py-1 border text-[9px] font-black italic ${isDark ? 'bg-white/5 border-white/20 text-white/60' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
+                            {d.date.split('-').slice(1).join('/')}{d.isHalf && <span className="ml-0.5 text-yellow-500">(半)</span>}
                           </span>
                         ))}
                       </div>

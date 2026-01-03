@@ -199,16 +199,19 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
   };
 
   const exportToCSV = () => {
-    const headers = ['申請日', '取得日', '社員№', '氏名', '派遣先', '種類', '状態', '承認日', '備考'];
+    const headers = ['申請日', '取得日', '社員№', '氏名', '派遣先', '種類', '期間', '状態', '承認日', '備考'];
     const rows = filteredRecords.map(r => {
       const emp = data.employees.find(e => e.id === r.employeeId);
+      const typeLabel = r.type === 'paid' ? '有給' : r.type === 'special' ? '特別休暇' : '欠勤';
+      const durationLabel = r.type === 'paid' ? ((r.duration || 'full') === 'half' ? '半日' : '全日') : '-';
       return [
         r.createdAt.split('T')[0],
         r.date,
         r.employeeId,
         emp ? getDisplayName(emp.name) : '不明',
         emp?.client || '不明',
-        r.type === 'paid' ? '有給' : r.type === 'special' ? '特別休暇' : '欠勤',
+        typeLabel,
+        durationLabel,
         r.status === 'pending' ? '保留中' : r.status === 'approved' ? '承認済' : '却下',
         r.approvedAt?.split('T')[0] || '',
         r.note || ''
@@ -423,7 +426,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                   </div>
                 </div>
 
-                {/* Type + Note */}
+                {/* Type + Duration + Note */}
                 <div className="flex items-center gap-3 mb-3">
                   <span className={`px-2 py-1 rounded text-[10px] font-bold ${
                     record.type === 'paid' ? 'bg-blue-500/20 text-blue-400' :
@@ -431,6 +434,11 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                     isDark ? 'bg-white/10 text-white/60' : 'bg-slate-100 text-slate-500'
                   }`}>
                     {record.type === 'paid' ? '有給' : record.type === 'special' ? '特別' : '欠勤'}
+                    {record.type === 'paid' && (
+                      <span className="ml-1 opacity-70">
+                        ({(record.duration || 'full') === 'half' ? '半日' : '全日'})
+                      </span>
+                    )}
                   </span>
                   {record.note && (
                     <span className={`text-xs truncate max-w-[150px] ${isDark ? 'text-white/50' : 'text-slate-400'}`}>
@@ -530,6 +538,11 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                       <td role="gridcell" className="p-3 md:p-4">
                         <span className={`text-[10px] md:text-xs font-bold ${record.type === 'paid' ? 'text-blue-500' : record.type === 'special' ? 'text-purple-500' : 'text-gray-400'}`}>
                           {record.type === 'paid' ? '有給' : record.type === 'special' ? '特別' : '欠勤'}
+                          {record.type === 'paid' && (
+                            <span className="ml-1 opacity-60">
+                              ({(record.duration || 'full') === 'half' ? '半日' : '全日'})
+                            </span>
+                          )}
                         </span>
                       </td>
                       <td role="gridcell" className={`p-3 md:p-4 text-xs hidden lg:table-cell ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
@@ -661,6 +674,11 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                         isDark ? 'bg-white/10 text-white/60' : 'bg-slate-200 text-slate-500'
                       }`}>
                         {record.type === 'paid' ? '有給' : record.type === 'special' ? '特別' : '欠勤'}
+                        {record.type === 'paid' && (
+                          <span className="ml-1 opacity-70">
+                            ({(record.duration || 'full') === 'half' ? '半日' : '全日'})
+                          </span>
+                        )}
                       </span>
                     </div>
                   </div>

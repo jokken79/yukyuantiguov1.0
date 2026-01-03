@@ -678,18 +678,24 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                       {/* Dates Grid */}
                       {period.yukyuDates && period.yukyuDates.length > 0 && (
                         <div className="grid grid-cols-3 md:grid-cols-4 gap-1 pl-2">
-                          {period.yukyuDates.slice(0, 16).map((date, i) => (
-                            <div
-                              key={`${date}-${i}`}
-                              className={`text-[11px] font-mono py-1.5 px-2 rounded text-center ${
-                                period.isExpired
-                                  ? 'bg-red-500/5 text-red-400/60 line-through'
-                                  : isDark ? 'bg-white/10 text-white/80' : 'bg-slate-50 text-slate-600'
-                              }`}
-                            >
-                              {new Date(date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
-                            </div>
-                          ))}
+                          {period.yukyuDates.slice(0, 16).map((dateStr, i) => {
+                            // Parsear formato: "YYYY-MM-DD" o "YYYY-MM-DD:half"
+                            const isHalf = dateStr.endsWith(':half');
+                            const dateOnly = isHalf ? dateStr.replace(':half', '') : dateStr;
+                            return (
+                              <div
+                                key={`${dateStr}-${i}`}
+                                className={`text-[11px] font-mono py-1.5 px-2 rounded text-center ${
+                                  period.isExpired
+                                    ? 'bg-red-500/5 text-red-400/60 line-through'
+                                    : isDark ? 'bg-white/10 text-white/80' : 'bg-slate-50 text-slate-600'
+                                }`}
+                              >
+                                {new Date(dateOnly).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
+                                {isHalf && <span className="ml-0.5 text-[9px] opacity-60">(半)</span>}
+                              </div>
+                            );
+                          })}
                           {period.yukyuDates.length > 16 && (
                             <div className={`text-[10px] py-1.5 px-2 text-center ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
                               +{period.yukyuDates.length - 16}件

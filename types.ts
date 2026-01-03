@@ -52,6 +52,7 @@ export interface LeaveRecord {
   employeeId: string;
   date: string;
   type: 'paid' | 'unpaid' | 'special';
+  duration: 'full' | 'half'; // 全日 (1日) o 半日 (0.5日)
   note?: string;
   status: 'pending' | 'approved' | 'rejected'; // 承認ステータス
   createdAt: string; // 申請日時

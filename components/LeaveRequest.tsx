@@ -136,7 +136,8 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
   const [formData, setFormData] = useState({
     employeeId: '',
     date: new Date().toISOString().split('T')[0],
-    type: 'paid' as const,
+    type: 'paid' as 'paid' | 'unpaid' | 'special',
+    duration: 'full' as 'full' | 'half',
     note: ''
   });
 
@@ -257,16 +258,6 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
     e.preventDefault();
     if (!formData.employeeId || !formData.date) return;
 
-    // Validar fecha
-    const selectedDate = new Date(formData.date);
-    const dayOfWeek = selectedDate.getDay();
-
-    // Validar no es fin de semana
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      toast.error('週末は有給取得できません。\n平日を選択してください。');
-      return;
-    }
-
     // Validar rango (aunque min/max en input lo previene, doble check)
     if (formData.date < dateConstraints.min || formData.date > dateConstraints.max) {
       toast.error('選択した日付が有効範囲外です。\n過去1年〜未来1年の範囲で選択してください。');
@@ -277,6 +268,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
       employeeId: formData.employeeId,
       date: formData.date,
       type: formData.type,
+      duration: formData.duration,
       note: formData.note
     });
 
@@ -420,16 +412,67 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                 <select
                   id="leave-type"
                   value={formData.type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'paid' | 'unpaid' | 'special' }))}
                   aria-label="休暇の種類を選択してください"
                   className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                 >
-                  <option value="paid" className={isDark ? 'bg-black' : 'bg-white'}>有給休暇 (全休)</option>
+                  <option value="paid" className={isDark ? 'bg-black' : 'bg-white'}>有給休暇</option>
                   <option value="special" className={isDark ? 'bg-black' : 'bg-white'}>特別休暇</option>
                   <option value="unpaid" className={isDark ? 'bg-black' : 'bg-white'}>欠勤</option>
                 </select>
               </div>
             </fieldset>
+
+            {/* Duration selector - solo para 有給休暇 */}
+            {formData.type === 'paid' && (
+              <div className="space-y-2">
+                <label htmlFor="leave-duration" className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>取得期間</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, duration: 'full' }))}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      formData.duration === 'full'
+                        ? 'border-indigo-500 bg-indigo-500/10'
+                        : isDark
+                          ? 'border-white/10 bg-white/5 hover:border-white/20'
+                          : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                    }`}
+                    aria-pressed={formData.duration === 'full'}
+                    aria-label="全日（1日）を選択"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-2xl">☀️</span>
+                      <div className="text-left">
+                        <p className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>全日</p>
+                        <p className={`text-xs ${isDark ? 'text-white/60' : 'text-slate-500'}`}>1日</p>
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, duration: 'half' }))}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      formData.duration === 'half'
+                        ? 'border-indigo-500 bg-indigo-500/10'
+                        : isDark
+                          ? 'border-white/10 bg-white/5 hover:border-white/20'
+                          : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                    }`}
+                    aria-pressed={formData.duration === 'half'}
+                    aria-label="半日（0.5日）を選択"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-2xl">🌓</span>
+                      <div className="text-left">
+                        <p className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>半日</p>
+                        <p className={`text-xs ${isDark ? 'text-white/60' : 'text-slate-500'}`}>0.5日</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <label htmlFor="leave-note" className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>備考 / 理由</label>

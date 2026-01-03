@@ -18,9 +18,28 @@ import { Employee } from '../types';
  */
 export interface BalanceInfo {
   granted: number;      // Días otorgados totales (no expirados)
-  used: number;         // Días consumidos
+  used: number;         // Días consumidos (full=1, half=0.5)
   remaining: number;    // Balance restante (granted - used)
   expiredCount: number; // Días que expiraron (時効)
+}
+
+/**
+ * Parsea una fecha de yukyuDates que puede tener sufijo de duración
+ * Formato: "YYYY-MM-DD" (full day) o "YYYY-MM-DD:half" (half day)
+ */
+function parseYukyuDate(dateStr: string): { date: string; value: number } {
+  if (dateStr.endsWith(':half')) {
+    return { date: dateStr.replace(':half', ''), value: 0.5 };
+  }
+  return { date: dateStr, value: 1 };
+}
+
+/**
+ * Cuenta el valor total de días de un array de yukyuDates
+ * Soporta formato "YYYY-MM-DD" (1 día) y "YYYY-MM-DD:half" (0.5 días)
+ */
+function countDaysValue(dates: string[]): number {
+  return dates.reduce((sum, dateStr) => sum + parseYukyuDate(dateStr).value, 0);
 }
 
 /**
@@ -129,13 +148,16 @@ export function getEmployeePeriods(employee: Employee): PeriodInfo[] {
   const datesByPeriod: Map<number, string[]> = new Map();
 
   yukyuDates.forEach(dateStr => {
-    const date = new Date(dateStr);
+    // Extraer la fecha base (sin sufijo :half)
+    const parsed = parseYukyuDate(dateStr);
+    const date = new Date(parsed.date);
     const periodIndex = getGrantPeriodForDate(date, entryDate);
 
     if (periodIndex >= 0) {
       if (!datesByPeriod.has(periodIndex)) {
         datesByPeriod.set(periodIndex, []);
       }
+      // Guardar el string original con sufijo para poder contar correctamente
       datesByPeriod.get(periodIndex)!.push(dateStr);
     }
   });
@@ -152,7 +174,8 @@ export function getEmployeePeriods(employee: Employee): PeriodInfo[] {
     const isCurrentPeriod = i === currentPeriodIndex;
     const daysGranted = LEGAL_GRANT_TABLE[i].days;
     const usedDates = datesByPeriod.get(i) || [];
-    const daysUsed = usedDates.length;
+    // Usar countDaysValue para soportar medios días (half = 0.5)
+    const daysUsed = countDaysValue(usedDates);
 
     periods.push({
       periodIndex: i,

@@ -180,9 +180,16 @@ export const db = {
         emp.yukyuDates = [];
       }
 
-      // Agregar fecha si no existe (la validación ya verificó que no esté duplicada)
-      if (!emp.yukyuDates.includes(record.date)) {
-        emp.yukyuDates.push(record.date);
+      // Formato: "YYYY-MM-DD" para día completo, "YYYY-MM-DD:half" para medio día
+      const duration = record.duration || 'full';
+      const dateEntry = duration === 'half' ? `${record.date}:half` : record.date;
+
+      // Agregar fecha si no existe (verificar ambas versiones: full y half)
+      const existsAsFull = emp.yukyuDates.includes(record.date);
+      const existsAsHalf = emp.yukyuDates.includes(`${record.date}:half`);
+
+      if (!existsAsFull && !existsAsHalf) {
+        emp.yukyuDates.push(dateEntry);
         emp.yukyuDates.sort(); // Mantener ordenado
       }
 
@@ -263,8 +270,16 @@ export const db = {
           emp.yukyuDates = [];
         }
 
-        if (!emp.yukyuDates.includes(record.date)) {
-          emp.yukyuDates.push(record.date);
+        // Formato: "YYYY-MM-DD" para día completo, "YYYY-MM-DD:half" para medio día
+        const duration = record.duration || 'full';
+        const dateEntry = duration === 'half' ? `${record.date}:half` : record.date;
+
+        // Agregar fecha si no existe (verificar ambas versiones: full y half)
+        const existsAsFull = emp.yukyuDates.includes(record.date);
+        const existsAsHalf = emp.yukyuDates.includes(`${record.date}:half`);
+
+        if (!existsAsFull && !existsAsHalf) {
+          emp.yukyuDates.push(dateEntry);
           emp.yukyuDates.sort();
         }
 

@@ -396,6 +396,12 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                             あと{daysNeeded}日必要
                           </span>
                         </div>
+                        {emp.excededDays !== undefined && emp.excededDays > 0 && (
+                          <div className="mt-2 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-amber-500 text-[8px] font-black tracking-wider flex items-center gap-1">
+                            <span>⚠️</span>
+                            <span>40日超過制限: {emp.excededDays}日失効</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

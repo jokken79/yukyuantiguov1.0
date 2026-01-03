@@ -243,6 +243,11 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                                 (全: {emp.historicalBalance}日)
                               </div>
                             )}
+                            {emp.excededDays !== undefined && emp.excededDays > 0 && (
+                              <div className="mt-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[7px] md:text-[8px] font-black tracking-wider">
+                                ⚠️ 超過{emp.excededDays}日
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className={`inline-block px-3 md:px-5 py-1 md:py-2 border-2 font-black text-[10px] md:text-xs ${

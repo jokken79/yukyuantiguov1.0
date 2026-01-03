@@ -36,8 +36,9 @@ export interface Employee {
   // Valores ACTUALES (solo períodos vigentes/no expirados)
   currentGrantedTotal?: number; // 付与数 de períodos vigentes
   currentUsedTotal?: number; // 消化日数 de períodos vigentes
-  currentBalance?: number; // 残高 de períodos vigentes
+  currentBalance?: number; // 残高 de períodos vigentes (⭐ MÁXIMO 40日 por ley)
   currentExpiredCount?: number; // Siempre 0 (períodos actuales no tienen expirados)
+  excededDays?: number; // 日数 que exceden el límite legal de 40日 (se pierden)
 
   // Valores HISTÓRICOS (todos los períodos incluyendo expirados)
   historicalGrantedTotal?: number; // 付与数 total de todos los períodos

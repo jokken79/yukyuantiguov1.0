@@ -69,7 +69,17 @@ export function recalculateExpiration(employee: Employee): Employee {
   const currentPeriods = updatedPeriodHistory.filter(p => !p.isExpired);
   const currentGrantedTotal = currentPeriods.reduce((sum, p) => sum + p.granted, 0);
   const currentUsedTotal = currentPeriods.reduce((sum, p) => sum + p.used, 0);
-  const currentBalance = currentPeriods.reduce((sum, p) => sum + p.balance, 0);
+  const rawCurrentBalance = currentPeriods.reduce((sum, p) => sum + p.balance, 0);
+
+  // ⭐ NUEVO: Aplicar límite legal de 40 días (労働基準法第115条)
+  const LEGAL_MAX_BALANCE = 40;
+  const currentBalance = Math.min(rawCurrentBalance, LEGAL_MAX_BALANCE);
+  const excededDays = rawCurrentBalance > LEGAL_MAX_BALANCE ? rawCurrentBalance - LEGAL_MAX_BALANCE : 0;
+
+  if (excededDays > 0) {
+    console.warn(`⚠️ ${employee.name}: Balance excede límite legal (${rawCurrentBalance}日 > 40日). Exceso: ${excededDays}日 se pierden por 時効.`);
+  }
+
   const currentExpiredCount = 0; // Los períodos actuales nunca tienen expirados
 
   // ⭐ PASO 3: Calcular valores HISTÓRICOS (todos los períodos)
@@ -86,8 +96,9 @@ export function recalculateExpiration(employee: Employee): Employee {
     // Valores ACTUALES
     currentGrantedTotal,
     currentUsedTotal,
-    currentBalance,
+    currentBalance, // ⭐ LIMITADO A 40日 máximo por ley
     currentExpiredCount,
+    excededDays, // ⭐ Días que exceden el límite legal (se pierden)
 
     // Valores HISTÓRICOS
     historicalGrantedTotal,
@@ -98,7 +109,7 @@ export function recalculateExpiration(employee: Employee): Employee {
     // ⭐ LEGACY: Actualizar campos legacy para backward compatibility
     grantedTotal: currentGrantedTotal,
     usedTotal: historicalUsedTotal,
-    balance: currentBalance,
+    balance: currentBalance, // ⭐ LIMITADO A 40日
     expiredCount: historicalExpiredCount,
 
     // Actualizar timestamp

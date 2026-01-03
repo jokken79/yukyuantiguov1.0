@@ -1,0 +1,22 @@
+{
+  "name": "yukyu-integrity-guardian",
+  "version": "1.0.0",
+  "description": "Guardian de integridad de datos de yukyu con validación automática, reparación y auditoría para uso empresarial",
+  "author": "Yukyu Pro Team",
+  "trigger": "manual",
+  "commands": {
+    "/yukyu-validate": "Validar integridad de todos los empleados",
+    "/yukyu-repair": "Reparar automáticamente datos inconsistentes",
+    "/yukyu-audit": "Generar reporte de auditoría completo",
+    "/yukyu-compare": "Comparar valores entre diferentes fuentes",
+    "/yukyu-debug": "Activar modo debug con inspección detallada"
+  },
+  "hooks": [],
+  "dependencies": {
+    "services/dataIntegrityValidator": "Servicio de validación de integridad",
+    "services/dataRepairService": "Servicio de reparación automática",
+    "services/db": "Base de datos localStorage"
+  },
+  "tags": ["yukyu", "integrity", "validation", "repair", "audit", "enterprise"],
+  "license": "MIT"
+}

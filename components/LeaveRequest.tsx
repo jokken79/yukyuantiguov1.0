@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { AppData, Employee } from '../types';
 import { db } from '../services/db';
 import { useTheme } from '../contexts/ThemeContext';
@@ -250,7 +251,10 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
 
     setFormData(prev => ({ ...prev, note: '', date: new Date().toISOString().split('T')[0] }));
     onSuccess();
-    alert("休暇申請を受け付けました。\n\n※承認後に有給残高が更新されます。\n申請管理ページで承認状況を確認できます。");
+    toast.success("休暇申請を受け付けました。\n\n※承認後に有給残高が更新されます。\n申請管理ページで承認状況を確認できます。", {
+      duration: 6000,
+      icon: '✅'
+    });
   };
 
   return (

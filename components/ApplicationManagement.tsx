@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { AppData, LeaveRecord } from '../types';
 import { db } from '../services/db';
 import { useTheme } from '../contexts/ThemeContext';
@@ -66,7 +67,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
         ? errorMessages[result.code]
         : result.error || 'エラーが発生しました。';
 
-      alert(message);
+      toast.error(message);
       return;
     }
 
@@ -99,7 +100,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
     });
 
     if (pendingSelected.length === 0) {
-      alert('承認する保留中の申請を選択してください');
+      toast.error('承認する保留中の申請を選択してください');
       return;
     }
 
@@ -127,7 +128,12 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
         }
       }
 
-      alert(message);
+      // Mostrar toast según resultados
+      if (results.failed.length > 0) {
+        toast.error(message, { duration: 8000 });
+      } else {
+        toast.success(message, { duration: 5000 });
+      }
       setSelectedIds(new Set());
       onUpdate();
     }
@@ -141,14 +147,14 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
     });
 
     if (pendingSelected.length === 0) {
-      alert('却下する保留中の申請を選択してください');
+      toast.error('却下する保留中の申請を選択してください');
       return;
     }
 
     const reason = prompt(`${pendingSelected.length}件の申請を一括却下します。\n却下理由を入力してください（任意）:`);
     if (reason !== null) {
       const count = db.rejectMultiple(pendingSelected, reason || undefined);
-      alert(`${count}件の申請を却下しました`);
+      toast.success(`${count}件の申請を却下しました`);
       setSelectedIds(new Set());
       onUpdate();
     }

@@ -4,10 +4,11 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { sanitizeValue } from '../utils/csvSanitizer';
 import * as XLSX from 'xlsx';
+import toast from 'react-hot-toast';
 
 export const exportEmployeesToCSV = (employees: Employee[]) => {
   if (employees.length === 0) {
-    alert("エクスポートするデータがありません。");
+    toast.error("エクスポートするデータがありません。");
     return;
   }
 
@@ -71,7 +72,7 @@ export const exportToPDF = async (elementId: string, filename: string) => {
     pdf.save(filename);
   } catch (error) {
     console.error('PDF export failed', error);
-    alert('PDFの出力に失敗しました。');
+    toast.error('PDFの出力に失敗しました。');
   }
 };
 
@@ -229,7 +230,7 @@ function generateExcelRow(
  */
 export const exportEmployeesToExcel = (employees: Employee[]) => {
   if (employees.length === 0) {
-    alert("エクスポートするデータがありません。");
+    toast.error("エクスポートするデータがありません。");
     return;
   }
 
@@ -286,6 +287,6 @@ export const exportEmployeesToExcel = (employees: Employee[]) => {
 
   } catch (error) {
     console.error('Excel export failed:', error);
-    alert('Excelの出力に失敗しました。');
+    toast.error('Excelの出力に失敗しました。');
   }
 };

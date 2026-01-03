@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import toast from 'react-hot-toast';
 import { db } from '../services/db';
 import { Employee, PeriodHistory } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
@@ -699,7 +700,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
 
         const hasDaichoSheets = DAICHO_SHEETS.some(s => workbook.SheetNames.includes(s.name));
         if (!hasDaichoSheets) {
-          alert('社員台帳ファイルではありません。\n必要なシート: DBGenzaiX, DBUkeoiX, DBStaffX');
+          toast.error('社員台帳ファイルではありません。\n必要なシート: DBGenzaiX, DBUkeoiX, DBStaffX', { duration: 6000 });
           setLoadingDaicho(false);
           setProgress(setProgressDaicho, 'idle');
           return;
@@ -734,7 +735,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         onSyncComplete();
       } catch (err) {
         console.error('[Daicho] Error:', err);
-        alert('社員台帳の解析に失敗しました。');
+        toast.error('社員台帳の解析に失敗しました。\nシート名やデータ形式を確認してください。', { duration: 6000 });
       } finally {
         setLoadingDaicho(false);
         setProgress(setProgressDaicho, 'idle');
@@ -765,7 +766,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
 
         const hasYukyuSheets = YUKYU_SHEETS.some(s => workbook.SheetNames.includes(s.name));
         if (!hasYukyuSheets) {
-          alert('有給休暇管理ファイルではありません。\n必要なシート: 作業者データ　有給, 請負');
+          toast.error('有給休暇管理ファイルではありません。\n必要なシート: 作業者データ　有給, 請負', { duration: 6000 });
           setLoadingYukyu(false);
           setProgress(setProgressYukyu, 'idle');
           return;
@@ -800,7 +801,7 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         onSyncComplete();
       } catch (err) {
         console.error('[Yukyu] Error:', err);
-        alert('有給休暇管理の解析に失敗しました。');
+        toast.error('有給休暇管理の解析に失敗しました。\nシート名やデータ形式を確認してください。', { duration: 6000 });
       } finally {
         setLoadingYukyu(false);
         setProgress(setProgressYukyu, 'idle');
@@ -834,8 +835,8 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
       // Segunda confirmación para evitar borrados accidentales
       if (confirm('最終確認: 本当にすべてのデータを削除しますか？')) {
         localStorage.clear();
-        alert('すべてのデータを削除しました。\nページをリロードします。');
-        window.location.reload();
+        toast.success('すべてのデータを削除しました。\nページをリロードします。', { duration: 2000 });
+        setTimeout(() => window.location.reload(), 2000);
       }
     }
   };

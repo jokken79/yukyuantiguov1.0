@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -99,6 +100,33 @@ const AppContent: React.FC = () => {
           {renderContent()}
         </div>
       </main>
+
+      {/* React Hot Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: isDark ? '#1a1a1a' : '#ffffff',
+            color: isDark ? '#ffffff' : '#000000',
+            border: isDark ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)',
+            fontWeight: 'bold',
+            fontSize: '14px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#22c55e',
+              secondary: '#ffffff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#ffffff',
+            },
+          },
+        }}
+      />
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {

@@ -238,9 +238,40 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
     };
   }, [formData.employeeId, allLeaveHistory]);
 
+  // Calcular rangos válidos de fecha (±1 año desde hoy)
+  const dateConstraints = useMemo(() => {
+    const today = new Date();
+    const oneYearAgo = new Date(today);
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    const oneYearAhead = new Date(today);
+    oneYearAhead.setFullYear(today.getFullYear() + 1);
+
+    return {
+      min: oneYearAgo.toISOString().split('T')[0],
+      max: oneYearAhead.toISOString().split('T')[0],
+      today: today.toISOString().split('T')[0]
+    };
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.employeeId || !formData.date) return;
+
+    // Validar fecha
+    const selectedDate = new Date(formData.date);
+    const dayOfWeek = selectedDate.getDay();
+
+    // Validar no es fin de semana
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      toast.error('週末は有給取得できません。\n平日を選択してください。');
+      return;
+    }
+
+    // Validar rango (aunque min/max en input lo previene, doble check)
+    if (formData.date < dateConstraints.min || formData.date > dateConstraints.max) {
+      toast.error('選択した日付が有効範囲外です。\n過去1年〜未来1年の範囲で選択してください。');
+      return;
+    }
 
     db.addRecord({
       employeeId: formData.employeeId,
@@ -358,6 +389,9 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                  min={dateConstraints.min}
+                  max={dateConstraints.max}
+                  aria-label="取得予定日を選択してください"
                   className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 />

@@ -4,6 +4,8 @@ import { migrateData, showMigrationInfo } from './migrationService';
 import { canApproveLeave } from './validationService';
 import { getEmployeeBalance } from './balanceCalculator';
 import { recalculateAllExpirations } from './expirationService';
+import { validateAllEmployees, generateReportSummary } from './dataIntegrityValidator';
+import { smartRepair, generateRepairSummary } from './dataRepairService';
 
 const DB_KEY = 'yukyu_pro_storage';
 
@@ -59,6 +61,47 @@ export const db = {
 
       // ⭐ NUEVO: Recálculo automático de expiraciones cada vez que se cargan los datos
       const updatedEmployees = recalculateAllExpirations(migrationResult.data.employees);
+
+      // ⭐ NUEVO: Validación de integridad de datos
+      console.log('🛡️ Ejecutando validación de integridad de datos...');
+      const integrityReport = validateAllEmployees(updatedEmployees);
+
+      if (integrityReport.criticalCount > 0 || integrityReport.errorCount > 0) {
+        console.warn('⚠️ PROBLEMAS DE INTEGRIDAD DETECTADOS:');
+        console.warn(`   🚨 Críticos: ${integrityReport.criticalCount}`);
+        console.warn(`   ❌ Errores: ${integrityReport.errorCount}`);
+        console.warn(`   ⚠️ Advertencias: ${integrityReport.warningCount}`);
+        console.warn('');
+        console.warn('🔧 Iniciando reparación automática de datos...');
+
+        // Reparar empleados con problemas
+        const { repaired, results } = smartRepair(updatedEmployees, 'auto');
+
+        if (results.length > 0) {
+          console.log('✅ Reparación completada:');
+          console.log(generateRepairSummary(results));
+
+          // Guardar datos reparados
+          const repairedData = {
+            ...migrationResult.data,
+            employees: repaired
+          };
+
+          db.saveData(repairedData);
+
+          // Validar nuevamente después de reparar
+          const postRepairReport = validateAllEmployees(repaired);
+          console.log('🔍 Validación post-reparación:');
+          console.log(`   🚨 Críticos: ${postRepairReport.criticalCount}`);
+          console.log(`   ❌ Errores: ${postRepairReport.errorCount}`);
+          console.log(`   ⚠️ Advertencias: ${postRepairReport.warningCount}`);
+
+          return repairedData;
+        }
+      } else {
+        console.log('✅ Validación de integridad: Sin problemas detectados');
+      }
+
       const finalData = {
         ...migrationResult.data,
         employees: updatedEmployees

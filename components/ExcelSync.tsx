@@ -377,24 +377,25 @@ const processYukyu = (
         periodHistory: periodHistory.length > 0 ? periodHistory : undefined,
 
         // ⭐ NUEVO: Valores ACTUALES (solo períodos vigentes)
-        currentGrantedTotal: currentGrantedTotal || undefined,
-        currentUsedTotal: currentUsedTotal || undefined,
-        currentBalance: currentBalance || undefined,
-        currentExpiredCount: currentExpiredCount,
+        // ⚠️ CRÍTICO: NO usar || undefined porque 0 se convierte en undefined
+        currentGrantedTotal,
+        currentUsedTotal,
+        currentBalance,
+        currentExpiredCount,
 
         // ⭐ NUEVO: Valores HISTÓRICOS (todos los períodos)
-        historicalGrantedTotal: historicalGrantedTotal || undefined,
-        historicalUsedTotal: historicalUsedTotal || undefined,
-        historicalBalance: historicalBalance || undefined,
-        historicalExpiredCount: historicalExpiredCount || undefined,
+        historicalGrantedTotal,
+        historicalUsedTotal,
+        historicalBalance,
+        historicalExpiredCount,
 
         // ⭐ LEGACY: Campos para backward compatibility
-        grantedTotal: currentGrantedTotal || undefined,
+        grantedTotal: currentGrantedTotal,
         carryOver: carryOver || undefined,
         totalAvailable: totalAvailable || undefined,
-        usedTotal: historicalUsedTotal || undefined,
-        balance: currentBalance || undefined,
-        expiredCount: historicalExpiredCount || undefined,
+        usedTotal: historicalUsedTotal,
+        balance: currentBalance,
+        expiredCount: historicalExpiredCount,
         remainingAfterExpiry: remainingAfterExpiry || undefined,
         yukyuDates: uniqueYukyuDates.length > 0 ? uniqueYukyuDates : undefined,
         status: status

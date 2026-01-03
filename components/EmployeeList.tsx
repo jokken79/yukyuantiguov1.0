@@ -1,5 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import FocusTrap from 'focus-trap-react';
 import { Employee, PeriodHistory } from '../types';
 import { exportEmployeesToCSV, exportToPDF, exportEmployeesToExcel } from '../services/exportService';
 import { getDisplayName } from '../services/nameConverter';
@@ -25,6 +26,17 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+
+  // Cerrar modal con ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showHistoryModal) {
+        setShowHistoryModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [showHistoryModal]);
 
   // Filter employees
   const filtered = useMemo(() => {
@@ -177,7 +189,92 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
         </div>
       </header>
 
-      <div id="employee-list-container" className={`border overflow-hidden ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+      {/* Vista Mobile - Cards (lg:hidden) */}
+      <div className="lg:hidden space-y-3">
+        {paginatedData.length > 0 ? (
+          paginatedData.map((emp) => {
+            const isMandatoryTarget = (emp.currentGrantedTotal ?? emp.grantedTotal) >= 10;
+            const isCompliant = (emp.currentUsedTotal ?? emp.usedTotal) >= 5;
+            const displayName = getDisplayName(emp.name);
+            const granted = emp.currentGrantedTotal !== undefined ? emp.currentGrantedTotal : emp.grantedTotal;
+            const used = emp.currentUsedTotal !== undefined ? emp.currentUsedTotal : emp.usedTotal;
+            const balance = emp.currentBalance !== undefined ? emp.currentBalance : emp.balance;
+
+            return (
+              <div
+                key={emp.id}
+                onClick={() => {
+                  setSelectedEmployee(emp);
+                  setShowHistoryModal(true);
+                }}
+                className={`p-4 rounded-lg border cursor-pointer transition-all active:scale-[0.98] ${
+                  isDark
+                    ? 'bg-white/5 border-white/10 hover:bg-white/10'
+                    : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
+                }`}
+              >
+                {/* Header: Name + Status */}
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className={`font-black text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{displayName}</h3>
+                    <p className={`text-xs ${isDark ? 'text-white/60' : 'text-slate-500'}`}>#{emp.id} • {emp.client}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 text-[10px] font-black rounded ${
+                      emp.status === '在職中'
+                        ? 'bg-green-500/20 text-green-400'
+                        : isDark ? 'bg-white/10 text-white/40' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {emp.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div className={`p-2 rounded ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                    <span className={`text-[9px] font-bold block ${isDark ? 'text-white/40' : 'text-slate-400'}`}>付与</span>
+                    <span className={`text-sm font-black ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{granted}日</span>
+                  </div>
+                  <div className={`p-2 rounded ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                    <span className={`text-[9px] font-bold block ${isDark ? 'text-white/40' : 'text-slate-400'}`}>消化</span>
+                    <span className={`text-sm font-black ${used > 0 ? 'text-red-400' : isDark ? 'text-white/40' : 'text-slate-300'}`}>{used}日</span>
+                  </div>
+                  <div className={`p-2 rounded ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                    <span className={`text-[9px] font-bold block ${isDark ? 'text-white/40' : 'text-slate-400'}`}>残高</span>
+                    <span className={`text-sm font-black ${balance < 5 ? 'text-red-500' : 'text-green-400'}`}>{balance}日</span>
+                  </div>
+                  <div className={`p-2 rounded ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                    <span className={`text-[9px] font-bold block ${isDark ? 'text-white/40' : 'text-slate-400'}`}>5日義務</span>
+                    {isMandatoryTarget ? (
+                      <span className={`text-sm font-black ${isCompliant ? 'text-blue-400' : 'text-red-500'}`}>
+                        {isCompliant ? '達成' : '未達'}
+                      </span>
+                    ) : (
+                      <span className={`text-sm font-black ${isDark ? 'text-white/20' : 'text-slate-300'}`}>-</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Exceded Warning */}
+                {emp.excededDays !== undefined && emp.excededDays > 0 && (
+                  <div className="mt-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[10px] font-black text-center rounded">
+                    ⚠️ 法定上限超過 {emp.excededDays}日
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className={`py-16 text-center border rounded-lg ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+            <div className={`text-4xl mb-4 ${isDark ? 'opacity-20' : 'opacity-30'}`}>📋</div>
+            <p className={`font-bold ${isDark ? 'text-white/60' : 'text-slate-400'}`}>該当する社員がいません</p>
+          </div>
+        )}
+      </div>
+
+      {/* Vista Desktop - Tabla (hidden lg:block) */}
+      <div id="employee-list-container" className={`hidden lg:block border overflow-hidden ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[800px]">
             <thead>
@@ -352,18 +449,22 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
 
       {/* Modal de Historial de Yukyu */}
       {showHistoryModal && selectedEmployee && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
-          onClick={() => setShowHistoryModal(false)}
-        >
+        <FocusTrap>
           <div
-            className={`max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-3xl p-8 ${isDark ? 'bg-[#0a0a0a] border border-white/20' : 'bg-white border border-slate-200'}`}
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
+            onClick={() => setShowHistoryModal(false)}
           >
+            <div
+              className={`max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-3xl p-8 ${isDark ? 'bg-[#0a0a0a] border border-white/20' : 'bg-white border border-slate-200'}`}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="history-modal-title"
+            >
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                <h3 id="history-modal-title" className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>
                   {getDisplayName(selectedEmployee.name)}
                 </h3>
                 <p className="text-indigo-500 text-sm font-medium mt-1">
@@ -524,7 +625,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
               )}
             </div>
           </div>
-        </div>
+          </div>
+        </FocusTrap>
       )}
     </div>
   );

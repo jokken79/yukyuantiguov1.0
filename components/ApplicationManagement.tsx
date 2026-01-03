@@ -1,6 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import FocusTrap from 'focus-trap-react';
 import { AppData, LeaveRecord } from '../types';
 import { db } from '../services/db';
 import { useTheme } from '../contexts/ThemeContext';
@@ -18,6 +19,18 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkPreview, setShowBulkPreview] = useState(false);
+
+  // Cerrar modal con ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showBulkPreview) {
+        setShowBulkPreview(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [showBulkPreview]);
 
   // Get unique clients
   const clients = useMemo(() => {
@@ -92,51 +105,56 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
     }
   };
 
-  const handleBulkApprove = () => {
-    const allSelected = Array.from(selectedIds) as string[];
-    const pendingSelected = allSelected.filter(id => {
-      const record = data.records.find(r => r.id === id);
-      return record?.status === 'pending';
-    });
+  // Obtener las aplicaciones pendientes seleccionadas
+  const pendingSelectedRecords = useMemo(() => {
+    return Array.from(selectedIds)
+      .map(id => data.records.find(r => r.id === id))
+      .filter(r => r?.status === 'pending') as typeof data.records;
+  }, [selectedIds, data.records]);
 
-    if (pendingSelected.length === 0) {
+  const handleBulkApprove = () => {
+    if (pendingSelectedRecords.length === 0) {
       toast.error('承認する保留中の申請を選択してください');
       return;
     }
+    // Mostrar modal de preview en lugar de confirm()
+    setShowBulkPreview(true);
+  };
 
-    if (confirm(`${pendingSelected.length}件の申請を一括承認しますか？`)) {
-      const results = db.approveMultiple(pendingSelected);
+  const confirmBulkApprove = () => {
+    const pendingSelected = pendingSelectedRecords.map(r => r.id!);
+    const results = db.approveMultiple(pendingSelected);
 
-      // ⭐ NUEVO: Mostrar resultados separados
-      let message = `✅ 承認完了：${results.succeeded.length}件\n`;
+    // Mostrar resultados separados
+    let message = `✅ 承認完了：${results.succeeded.length}件\n`;
 
-      if (results.failed.length > 0) {
-        message += `\n❌ 失敗：${results.failed.length}件\n`;
-        message += '\n失敗理由：\n';
-        results.failed.forEach((f, i) => {
-          if (i < 5) { // Mostrar máximo 5 errores
-            const reason = f.code === 'INSUFFICIENT_BALANCE' ? '残高不足' :
-                          f.code === 'DUPLICATE_DATE' ? '重複' :
-                          f.code === 'EMPLOYEE_RETIRED' ? '退社' :
-                          f.reason;
-            message += `- ${reason}\n`;
-          }
-        });
-
-        if (results.failed.length > 5) {
-          message += `... y ${results.failed.length - 5} más\n`;
+    if (results.failed.length > 0) {
+      message += `\n❌ 失敗：${results.failed.length}件\n`;
+      message += '\n失敗理由：\n';
+      results.failed.forEach((f, i) => {
+        if (i < 5) { // Mostrar máximo 5 errores
+          const reason = f.code === 'INSUFFICIENT_BALANCE' ? '残高不足' :
+                        f.code === 'DUPLICATE_DATE' ? '重複' :
+                        f.code === 'EMPLOYEE_RETIRED' ? '退社' :
+                        f.reason;
+          message += `- ${reason}\n`;
         }
-      }
+      });
 
-      // Mostrar toast según resultados
-      if (results.failed.length > 0) {
-        toast.error(message, { duration: 8000 });
-      } else {
-        toast.success(message, { duration: 5000 });
+      if (results.failed.length > 5) {
+        message += `... 他${results.failed.length - 5}件\n`;
       }
-      setSelectedIds(new Set());
-      onUpdate();
     }
+
+    // Mostrar toast según resultados
+    if (results.failed.length > 0) {
+      toast.error(message, { duration: 8000 });
+    } else {
+      toast.success(message, { duration: 5000 });
+    }
+    setSelectedIds(new Set());
+    setShowBulkPreview(false);
+    onUpdate();
   };
 
   const handleBulkReject = () => {
@@ -339,8 +357,100 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
         </div>
       </div>
 
-      {/* Table */}
-      <div className={`border overflow-hidden ${isDark ? 'border-white/20' : 'border-slate-200 shadow-sm'}`}>
+      {/* Vista Mobile - Cards (lg:hidden) */}
+      <div className="lg:hidden space-y-3">
+        {filteredRecords.length > 0 ? (
+          filteredRecords.map(record => {
+            const emp = getEmployeeInfo(record.employeeId);
+            const isPending = record.status === 'pending';
+
+            return (
+              <div
+                key={record.id}
+                className={`p-4 rounded-lg border ${
+                  isDark
+                    ? 'bg-white/5 border-white/10'
+                    : 'bg-white border-slate-200 shadow-sm'
+                }`}
+              >
+                {/* Header: Status + Date */}
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-2">
+                    {isPending && stats.pending > 0 && (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(record.id!)}
+                        onChange={() => toggleSelect(record.id!)}
+                        className="w-4 h-4"
+                      />
+                    )}
+                    {getStatusBadge(record.status)}
+                  </div>
+                  <span className={`font-black text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                    {record.date}
+                  </span>
+                </div>
+
+                {/* Employee Info */}
+                <div className="mb-3">
+                  <div className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                    {emp ? getDisplayName(emp.name) : '不明'}
+                  </div>
+                  <div className={`text-xs ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
+                    №{record.employeeId} • {emp?.client || '不明'}
+                  </div>
+                </div>
+
+                {/* Type + Note */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className={`px-2 py-1 rounded text-[10px] font-bold ${
+                    record.type === 'paid' ? 'bg-blue-500/20 text-blue-400' :
+                    record.type === 'special' ? 'bg-purple-500/20 text-purple-400' :
+                    isDark ? 'bg-white/10 text-white/60' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {record.type === 'paid' ? '有給' : record.type === 'special' ? '特別' : '欠勤'}
+                  </span>
+                  {record.note && (
+                    <span className={`text-xs truncate max-w-[150px] ${isDark ? 'text-white/50' : 'text-slate-400'}`}>
+                      {record.note}
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                {isPending ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleApprove(record.id!)}
+                      className="flex-1 py-2 bg-green-500/20 hover:bg-green-500/40 text-green-500 text-xs font-bold rounded transition-all"
+                    >
+                      承認
+                    </button>
+                    <button
+                      onClick={() => handleReject(record.id!)}
+                      className="flex-1 py-2 bg-red-500/20 hover:bg-red-500/40 text-red-500 text-xs font-bold rounded transition-all"
+                    >
+                      却下
+                    </button>
+                  </div>
+                ) : (
+                  <div className={`text-[10px] text-center py-2 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
+                    {record.approvedAt && `処理日: ${new Date(record.approvedAt).toLocaleDateString('ja-JP')}`}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className={`py-16 text-center border rounded-lg ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+            <div className={`text-4xl mb-4 ${isDark ? 'opacity-20' : 'opacity-30'}`}>📋</div>
+            <p className={`font-bold ${isDark ? 'text-white/60' : 'text-slate-400'}`}>該当する申請がありません</p>
+          </div>
+        )}
+      </div>
+
+      {/* Vista Desktop - Table (hidden lg:block) */}
+      <div className={`hidden lg:block border overflow-hidden ${isDark ? 'border-white/20' : 'border-slate-200 shadow-sm'}`}>
         {filteredRecords.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px]">
@@ -446,6 +556,110 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
       <div className={`text-xs text-center ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
         表示件数: {filteredRecords.length} / 全{data.records.length}件
       </div>
+
+      {/* Bulk Approval Preview Modal */}
+      {showBulkPreview && (
+        <FocusTrap>
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowBulkPreview(false)}
+          >
+            <div
+              className={`max-w-2xl w-full max-h-[80vh] flex flex-col rounded-lg border ${
+                isDark ? 'bg-slate-900 border-white/20' : 'bg-white border-slate-200 shadow-xl'
+              }`}
+              onClick={e => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="bulk-preview-title"
+            >
+            {/* Header */}
+            <div className={`p-4 md:p-6 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+              <div className="flex items-center justify-between">
+                <h3 id="bulk-preview-title" className={`text-lg md:text-xl font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                  一括承認の確認
+                </h3>
+                <button
+                  onClick={() => setShowBulkPreview(false)}
+                  className={`p-2 rounded-lg transition-all ${isDark ? 'hover:bg-white/10 text-white/60' : 'hover:bg-slate-100 text-slate-400'}`}
+                  aria-label="閉じる"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className={`mt-2 text-sm ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
+                以下の <span className="font-bold text-green-500">{pendingSelectedRecords.length}件</span> の申請を承認しますか？
+              </p>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-2">
+              {pendingSelectedRecords.map(record => {
+                const emp = data.employees.find(e => e.id === record.employeeId);
+                return (
+                  <div
+                    key={record.id}
+                    className={`p-3 md:p-4 rounded-lg flex flex-col md:flex-row md:justify-between md:items-center gap-2 ${
+                      isDark ? 'bg-white/5' : 'bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${
+                        record.type === 'paid' ? 'bg-blue-500' :
+                        record.type === 'special' ? 'bg-purple-500' :
+                        'bg-gray-500'
+                      }`} />
+                      <div>
+                        <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                          {emp ? getDisplayName(emp.name) : '不明'}
+                        </span>
+                        <span className={`text-xs ml-2 ${isDark ? 'text-white/50' : 'text-slate-400'}`}>
+                          №{record.employeeId}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 ml-5 md:ml-0">
+                      <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-700'}`}>
+                        {record.date}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                        record.type === 'paid' ? 'bg-blue-500/20 text-blue-500' :
+                        record.type === 'special' ? 'bg-purple-500/20 text-purple-500' :
+                        isDark ? 'bg-white/10 text-white/60' : 'bg-slate-200 text-slate-500'
+                      }`}>
+                        {record.type === 'paid' ? '有給' : record.type === 'special' ? '特別' : '欠勤'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer Actions */}
+            <div className={`p-4 md:p-6 border-t flex gap-3 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+              <button
+                onClick={() => setShowBulkPreview(false)}
+                className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
+                  isDark
+                    ? 'border border-white/20 text-white hover:bg-white/10'
+                    : 'border border-slate-300 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={confirmBulkApprove}
+                className="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-sm transition-all"
+              >
+                承認する ({pendingSelectedRecords.length}件)
+              </button>
+            </div>
+          </div>
+          </div>
+        </FocusTrap>
+      )}
     </div>
   );
 };

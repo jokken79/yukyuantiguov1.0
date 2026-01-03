@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Cell, PieChart, Pie, AreaChart, Area, ScatterChart, Scatter, ZAxis, Legend
@@ -103,10 +104,17 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   useEffect(() => {
     if (data.employees.length > 0) {
       setLoadingAI(true);
-      analyzeLeaveData(data).then(res => {
-        setInsights(res);
-        setLoadingAI(false);
-      });
+      analyzeLeaveData(data)
+        .then(res => {
+          setInsights(res);
+          setLoadingAI(false);
+        })
+        .catch(error => {
+          console.error('AI分析エラー:', error);
+          toast.error('AI分析に失敗しました。後でもう一度お試しください。', { duration: 5000 });
+          setLoadingAI(false);
+          setInsights(null);
+        });
     }
   }, [data]);
 

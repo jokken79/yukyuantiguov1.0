@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Employee, PeriodHistory } from '../types';
-import { exportEmployeesToCSV, exportToPDF } from '../services/exportService';
+import { exportEmployeesToCSV, exportToPDF, exportEmployeesToExcel } from '../services/exportService';
 import { getDisplayName } from '../services/nameConverter';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -18,6 +18,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
   const { isDark } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [exportingPDF, setExportingPDF] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [sortKey, setSortKey] = useState<SortKey>('id');
@@ -98,6 +99,15 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
     exportEmployeesToCSV(filtered);
   };
 
+  const handleExportExcel = () => {
+    setExportingExcel(true);
+    try {
+      exportEmployeesToExcel(filtered);
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   const handleExportPDF = async () => {
     setExportingPDF(true);
     await exportToPDF('employee-list-container', `有給休暇_社員一覧_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -129,6 +139,13 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
             </div>
             <div className="flex gap-2 md:gap-4">
               <button onClick={handleExportCSV} className={`flex-1 sm:flex-none border px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'}`}>CSV</button>
+              <button
+                onClick={handleExportExcel}
+                disabled={exportingExcel}
+                className={`flex-1 sm:flex-none border px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-green-500/10 border-green-500/30 hover:bg-green-500/20 text-green-400' : 'bg-green-50 border-green-200 hover:bg-green-100 text-green-800'}`}
+              >
+                {exportingExcel ? '...' : 'EXCEL'}
+              </button>
               <button onClick={handleExportPDF} disabled={exportingPDF} className={`flex-1 sm:flex-none px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white text-black hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'}`}>
                 {exportingPDF ? '...' : 'PDF'}
               </button>

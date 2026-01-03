@@ -819,6 +819,27 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
     }
   };
 
+  const clearAllData = () => {
+    const confirmMessage =
+      '⚠️ 警告: すべてのデータを完全に削除します\n\n' +
+      '以下のデータが永久に削除されます：\n' +
+      '• 全社員データ\n' +
+      '• 全有給申請記録\n' +
+      '• 同期状態\n' +
+      '• その他の設定\n\n' +
+      'この操作は取り消せません。\n' +
+      '本当に削除しますか？';
+
+    if (confirm(confirmMessage)) {
+      // Segunda confirmación para evitar borrados accidentales
+      if (confirm('最終確認: 本当にすべてのデータを削除しますか？')) {
+        localStorage.clear();
+        alert('すべてのデータを削除しました。\nページをリロードします。');
+        window.location.reload();
+      }
+    }
+  };
+
   const bothSynced = syncStatus.daicho.synced && syncStatus.yukyu.synced;
 
   return (
@@ -903,17 +924,35 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         />
       </div>
 
-      {/* Reset Button */}
-      {(syncStatus.daicho.synced || syncStatus.yukyu.synced) && (
-        <div className="flex justify-center">
+      {/* Reset & Clear Buttons */}
+      <div className="flex flex-col items-center gap-6">
+        {(syncStatus.daicho.synced || syncStatus.yukyu.synced) && (
           <button
             onClick={resetSync}
             className={`text-xs transition-colors font-bold tracking-wider ${isDark ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600'}`}
           >
             同期状態をリセット
           </button>
-        </div>
-      )}
+        )}
+
+        {/* Clear All Data Button - Dangerous Action */}
+        <button
+          onClick={clearAllData}
+          className={`group flex items-center gap-3 px-6 py-3 border-2 border-red-500/30 rounded-lg transition-all hover:border-red-500 hover:bg-red-500/10 ${
+            isDark ? 'bg-red-500/5' : 'bg-red-50'
+          }`}
+        >
+          <span className="text-2xl">🗑️</span>
+          <div className="text-left">
+            <div className="text-xs font-black tracking-wider text-red-500 group-hover:text-red-400">
+              すべてのデータを削除
+            </div>
+            <div className={`text-[9px] font-bold tracking-wide ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+              完全クリア（確認あり）
+            </div>
+          </div>
+        </button>
+      </div>
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">

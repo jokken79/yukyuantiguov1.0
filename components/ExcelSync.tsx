@@ -63,10 +63,41 @@ const excelDateToISO = (excelDate: number | string): string | undefined => {
   return date.toISOString().split('T')[0];
 };
 
-// Helper para buscar valor en columnas
+// ⭐ Normalizar strings japoneses para comparación robusta
+// Soluciona problemas con variaciones Unicode (経 vs 經), espacios invisibles, etc.
+const normalizeJapanese = (str: string): string => {
+  if (!str) return '';
+  return str
+    .normalize('NFKC')           // Normalizar Unicode (convierte 經→経, etc.)
+    .replace(/\s+/g, '')         // Eliminar espacios normales
+    .replace(/[　\u3000]/g, '')  // Eliminar espacios full-width japoneses
+    .trim();
+};
+
+// Helper para buscar valor en columnas (con normalización Unicode)
 const findValue = (row: any, keys: string[]): any => {
-  const foundKey = Object.keys(row).find(k => keys.includes(k.trim()));
+  const normalizedKeys = keys.map(k => normalizeJapanese(k));
+
+  const foundKey = Object.keys(row).find(k => {
+    const normalizedColName = normalizeJapanese(k);
+    return normalizedKeys.includes(normalizedColName);
+  });
+
   return foundKey ? row[foundKey] : null;
+};
+
+// ⭐ Calcular nombre legible del período de yukyu
+const calculatePeriodName = (months: number): string => {
+  if (months <= 0) return '不明';
+  if (months === 6) return '初回(6ヶ月)';
+
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+
+  if (remainingMonths === 0) {
+    return `${years}年`;
+  }
+  return `${years}年${remainingMonths}ヶ月`;
 };
 
 // Normalizar estado
@@ -172,13 +203,13 @@ const processDaicho = (
 };
 
 // ⭐ Construir historial de períodos desde múltiples filas del Excel
+// CORREGIDO: Normalización Unicode + fallback de fechas + deduplicación
 const buildPeriodHistory = (
   rows: any[],
   employeeId: string,
   category: string
 ): PeriodHistory[] => {
   const now = new Date();
-  const periodHistory: PeriodHistory[] = [];
 
   const firstRow = rows[0];
   const entryDateRaw = findValue(firstRow, ['入社日', '入社']);
@@ -191,9 +222,49 @@ const buildPeriodHistory = (
 
   const entry = new Date(entryDate);
 
+  // ⭐ Valores válidos de elapsedMonths: 6, 18, 30, 42, 54, 66, 78, 90, 102, 114...
+  const VALID_ELAPSED_MONTHS = [6, 18, 30, 42, 54, 66, 78, 90, 102, 114, 126, 138];
+
+  // ⭐ Usar Map para deduplicar por elapsedMonths
+  const periodMap = new Map<number, PeriodHistory>();
+
   rows.forEach((row, index) => {
-    // Extraer datos de la fila
-    const elapsedMonths = Number(findValue(row, ['経過月', '経過月数'])) || 0;
+    // ⭐ Expandir variantes de columna para経過月 (incluyendo kanji tradicional)
+    let elapsedMonths = Number(findValue(row, [
+      '経過月',       // Estándar
+      '経過月数',     // Con 数
+      '經過月',       // Kanji tradicional
+      '經過月数',     // Tradicional con 数
+      '経過',         // Abreviado
+      'elapsedMonths' // Inglés (fallback)
+    ])) || 0;
+
+    // ⭐ FALLBACK: Si elapsedMonths es 0, intentar calcular desde fechas
+    if (elapsedMonths === 0) {
+      const yukyuStartRaw = findValue(row, ['有給発生日', '有給発生', 'yukyuStartDate']);
+      if (yukyuStartRaw) {
+        const yukyuStart = typeof yukyuStartRaw === 'number'
+          ? new Date((yukyuStartRaw - 25569) * 86400 * 1000)
+          : new Date(yukyuStartRaw);
+
+        if (!isNaN(yukyuStart.getTime()) && !isNaN(entry.getTime())) {
+          const monthsDiff = (yukyuStart.getFullYear() - entry.getFullYear()) * 12
+                           + (yukyuStart.getMonth() - entry.getMonth());
+          // Redondear al valor válido más cercano
+          elapsedMonths = VALID_ELAPSED_MONTHS.reduce((prev, curr) =>
+            Math.abs(curr - monthsDiff) < Math.abs(prev - monthsDiff) ? curr : prev
+          );
+          console.log(`📅 ${employeeId}: Calculado elapsedMonths=${elapsedMonths} desde fechas (diff=${monthsDiff})`);
+        }
+      }
+    }
+
+    // Si sigue siendo 0, saltar esta fila (no tiene datos válidos de período)
+    if (elapsedMonths === 0) {
+      console.warn(`⚠️ ${employeeId}: Saltando fila ${index} sin 経過月 válido`);
+      return;
+    }
+
     const yukyuStartDateRaw = findValue(row, ['有給発生', '有給発生日']);
     const granted = Number(findValue(row, ['付与数', '付与合計', '付与日数', '当期付与'])) || 0;
     const used = Number(findValue(row, ['消化日数', '消化合計', '使用日数'])) || 0;
@@ -218,37 +289,49 @@ const buildPeriodHistory = (
                             (now.getMonth() - entry.getMonth());
     const isCurrentPeriod = Math.abs(elapsedMonths - monthsFromEntry) <= 6;
 
-    // Nombre del período
-    const periodName = elapsedMonths === 6
-      ? '初回(6ヶ月)'
-      : `${Math.floor(elapsedMonths / 12)}年${elapsedMonths % 12 > 0 ? elapsedMonths % 12 + 'ヶ月' : ''}`;
+    // ⭐ Usar la función calculatePeriodName() corregida
+    const periodName = calculatePeriodName(elapsedMonths);
 
     const rowYukyuDates = extractYukyuDates(row);
 
-    periodHistory.push({
-      periodIndex: index,
-      periodName,
-      elapsedMonths,
-      yukyuStartDate: yukyuStartDate || grantDate.toISOString().split('T')[0],
-      grantDate,
-      expiryDate,
-      granted,
-      used,
-      balance,
-      expired,
-      carryOver,
-      isExpired,
-      isCurrentPeriod,
-      yukyuDates: rowYukyuDates,
-      source: 'excel',
-      syncedAt: new Date().toISOString()
-    });
+    // ⭐ DEDUPLICACIÓN: Si ya existe este período, mergear fechas
+    if (periodMap.has(elapsedMonths)) {
+      const existing = periodMap.get(elapsedMonths)!;
+      // Mergear fechas de yukyu sin duplicados
+      existing.yukyuDates = [...new Set([...existing.yukyuDates, ...rowYukyuDates])].sort();
+      // Sumar valores si es necesario (casos donde hay múltiples filas para el mismo período)
+      console.log(`🔄 ${employeeId}: Mergeando período ${periodName} (fila ${index})`);
+    } else {
+      // Crear nuevo período
+      periodMap.set(elapsedMonths, {
+        periodIndex: periodMap.size,
+        periodName,
+        elapsedMonths,
+        yukyuStartDate: yukyuStartDate || grantDate.toISOString().split('T')[0],
+        grantDate,
+        expiryDate,
+        granted,
+        used,
+        balance,
+        expired,
+        carryOver,
+        isExpired,
+        isCurrentPeriod,
+        yukyuDates: rowYukyuDates,
+        source: 'excel',
+        syncedAt: new Date().toISOString()
+      });
+    }
   });
 
-  // Ordenar por fecha de otorgamiento (más antiguo primero)
-  periodHistory.sort((a, b) => a.grantDate.getTime() - b.grantDate.getTime());
+  // Convertir Map a array ordenado por elapsedMonths
+  const periodHistory = Array.from(periodMap.values())
+    .sort((a, b) => a.elapsedMonths - b.elapsedMonths);
 
-  console.log(`📊 ${employeeId}: ${periodHistory.length} períodos creados`);
+  // Actualizar periodIndex después de ordenar
+  periodHistory.forEach((p, i) => p.periodIndex = i);
+
+  console.log(`📊 ${employeeId}: ${periodHistory.length} períodos creados (de ${rows.length} filas)`);
   return periodHistory;
 };
 

@@ -125,3 +125,66 @@ Leave requests follow a three-state lifecycle:
 3. **rejected** - Manager rejected, no balance impact
 
 **Important**: Only `pending` requests can be approved/rejected. Approved records cannot be deleted (data integrity protection).
+
+## Sistema de Períodos de Yukyu (periodHistory)
+
+Cada empleado tiene un array `periodHistory` que almacena el historial completo de períodos de yukyu (有給休暇) otorgados a lo largo de su carrera.
+
+### Estructura de datos (`PeriodHistory`)
+
+```typescript
+interface PeriodHistory {
+  periodIndex: number;      // Índice del período (0, 1, 2...)
+  periodName: string;       // Nombre legible (初回(6ヶ月), 1年6ヶ月, 2年6ヶ月...)
+  elapsedMonths: number;    // Meses desde entrada (6, 18, 30, 42, 54, 66...)
+  yukyuStartDate: string;   // Fecha de inicio de validez
+  grantDate: Date;          // Fecha de otorgamiento
+  expiryDate: Date;         // Fecha de vencimiento (2 años después)
+  granted: number;          // Días otorgados en este período
+  used: number;             // Días consumidos
+  balance: number;          // Días restantes
+  expired: number;          // Días expirados (時効)
+  carryOver?: number;       // Días transferidos del período anterior
+  isExpired: boolean;       // Si el período ya venció
+  isCurrentPeriod: boolean; // Si es el período actual
+  yukyuDates: string[];     // Array de fechas de uso
+  source: string;           // Origen de datos ('excel', 'manual')
+  syncedAt: string;         // Timestamp de última sincronización
+}
+```
+
+### Valores válidos de elapsedMonths
+
+Los períodos de yukyu se otorgan en intervalos específicos según la ley laboral japonesa:
+
+| elapsedMonths | periodName | 付与日数 (días según ley) |
+|---------------|------------|---------------------------|
+| 6 | 初回(6ヶ月) | 10日 |
+| 18 | 1年6ヶ月 | 11日 |
+| 30 | 2年6ヶ月 | 12日 |
+| 42 | 3年6ヶ月 | 14日 |
+| 54 | 4年6ヶ月 | 16日 |
+| 66 | 5年6ヶ月 | 18日 |
+| 78+ | 6年6ヶ月+ | 20日 (máximo) |
+
+### Columnas de Excel soportadas para 経過月
+
+La función `findValue()` usa normalización Unicode para buscar columnas:
+- `経過月` (estándar)
+- `経過月数` (con 数)
+- `經過月` (kanji tradicional)
+- Cálculo automático desde `有給発生日` - `入社日` (fallback)
+
+### Lógica de importación (buildPeriodHistory)
+
+1. **Normalización Unicode**: Los nombres de columnas se normalizan con NFKC para manejar variaciones de kanji (経 vs 經)
+2. **Fallback de fechas**: Si `経過月` no se encuentra, se calcula desde la diferencia entre `有給発生日` y `入社日`
+3. **Deduplicación**: Se usa Map con `elapsedMonths` como key para evitar duplicados
+4. **Mergeo de fechas**: Períodos duplicados mergean sus `yukyuDates` sin duplicar
+
+### Cálculo de valores actuales vs históricos
+
+- **currentGrantedTotal/currentBalance**: Solo períodos vigentes (no expirados)
+- **historicalGrantedTotal/historicalBalance**: Todos los períodos incluyendo expirados
+
+Los valores "current" se usan para mostrar el balance disponible, mientras que los "historical" se usan para reportes y auditoría.

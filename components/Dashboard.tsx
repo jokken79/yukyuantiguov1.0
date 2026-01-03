@@ -166,7 +166,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
             <div className={`h-14 w-2 ${legalAlerts.length > 0 ? 'bg-red-600 shadow-[0_0_20px_#ff004c]' : 'bg-blue-500 shadow-[0_0_20px_#00e5ff]'} animate-pulse`}></div>
             <h2 className={`text-7xl font-black italic tracking-tighter underline decoration-blue-500/30 decoration-8 underline-offset-8 ${isDark ? 'aggressive-text' : 'text-slate-800'}`}>データ分析</h2>
           </div>
-          <div className={`flex items-center gap-4 font-black tracking-[0.4em] ml-8 text-sm ${isDark ? 'text-white/30' : 'text-slate-500'}`}>
+          <div className={`flex items-center gap-4 font-black tracking-[0.4em] ml-8 text-sm ${isDark ? 'text-white/70' : 'text-slate-500'}`}>
              <span>詳細分析モード</span>
              <span className="text-blue-500">●</span>
              <span>システム状態: 正常稼働中</span>
@@ -174,7 +174,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         </div>
 
         <div className="flex gap-4">
-          <button onClick={() => exportEmployeesToCSV(data.employees)} className={`px-10 py-5 border transition-all text-xs font-black tracking-widest ${isDark ? 'bg-black border-white/10 hover:border-white/40 text-white' : 'bg-white border-slate-200 hover:border-slate-400 text-slate-800'}`}>CSV出力</button>
+          <button onClick={() => exportEmployeesToCSV(data.employees)} className={`px-10 py-5 border transition-all text-xs font-black tracking-widest ${isDark ? 'bg-black border-white/20 hover:border-white/40 text-white' : 'bg-white border-slate-200 hover:border-slate-400 text-slate-800'}`}>CSV出力</button>
           <button
             onClick={async () => {
               setExportingPDF(true);
@@ -196,12 +196,12 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
               ? 'border-red-600 shadow-[0_0_30px_rgba(255,0,76,0.1)]'
               : isDark ? 'border-white/5' : 'border-slate-200'
           } ${isDark ? 'bg-[#0a0a0a] hover:bg-[#111]' : 'bg-white hover:bg-slate-50 shadow-sm'}`}>
-            <p className={`text-[10px] font-black mb-8 tracking-[0.3em] uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{kpi.label}</p>
+            <p className={`text-[10px] font-black mb-8 tracking-[0.3em] uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>{kpi.label}</p>
             <div className="flex items-baseline gap-3">
               <h3 className={`text-7xl font-black tabular-nums tracking-tighter italic ${
                 kpi.color === 'red' && kpi.value > 0 ? 'text-red-600' : isDark ? 'text-white' : 'text-slate-800'
               }`}>{kpi.value}</h3>
-              <span className={`text-xs font-black uppercase italic ${isDark ? 'text-white/20' : 'text-slate-400'}`}>{kpi.suffix}</span>
+              <span className={`text-xs font-black uppercase italic ${isDark ? 'text-white/70' : 'text-slate-400'}`}>{kpi.suffix}</span>
             </div>
           </div>
         ))}
@@ -305,7 +305,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
             ) : insights.map((insight, i) => (
               <div key={i} className={`p-6 border-l-4 ${insight.type === 'warning' ? 'border-red-600 bg-red-600/5' : 'border-blue-500 bg-blue-500/5'}`}>
                 <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${isDark ? 'text-white/70' : 'text-slate-600'}`}>{insight.title}</h4>
-                <p className={`text-[11px] leading-relaxed font-bold italic ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{insight.description}</p>
+                <p className={`text-[11px] leading-relaxed font-bold italic ${isDark ? 'text-white/80' : 'text-slate-500'}`}>{insight.description}</p>
               </div>
             ))}
           </div>
@@ -332,7 +332,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
               </div>
               <div className="text-right">
                 <div className="text-4xl font-black text-red-500">{legalAlerts.length}</div>
-                <p className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-500'}`}>名が未達成</p>
+                <p className={`text-xs ${isDark ? 'text-white/80' : 'text-slate-500'}`}>名が未達成</p>
               </div>
             </div>
 
@@ -358,7 +358,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                           <p className={`text-sm font-black truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>
                             {getDisplayName(emp.name)}
                           </p>
-                          <p className={`text-[10px] truncate ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+                          <p className={`text-[10px] truncate ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
                             {emp.client} / №{emp.id}
                           </p>
                         </div>
@@ -368,7 +368,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                           }`}>
                             {currentUsed}<span className="text-xs">日</span>
                           </div>
-                          <p className={`text-[9px] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                          <p className={`text-[9px] ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
                             消化済
                             {emp.historicalUsedTotal !== undefined && emp.historicalUsedTotal !== currentUsed && (
                               <> (全: {emp.historicalUsedTotal}日)</>
@@ -376,7 +376,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                           </p>
                         </div>
                       </div>
-                      <div className={`mt-2 pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                      <div className={`mt-2 pt-2 border-t ${isDark ? 'border-white/20' : 'border-slate-200'}`}>
                         <div className="flex items-center justify-between text-[10px]">
                           <span className={isDark ? 'text-white/50' : 'text-slate-500'}>
                             付与: {emp.currentGrantedTotal ?? emp.grantedTotal}日
@@ -408,7 +408,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                 })}
             </div>
 
-            <div className={`mt-4 pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} flex flex-wrap gap-4 text-[10px]`}>
+            <div className={`mt-4 pt-4 border-t ${isDark ? 'border-white/20' : 'border-slate-200'} flex flex-wrap gap-4 text-[10px]`}>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded bg-red-500"></div>
                 <span className={isDark ? 'text-white/50' : 'text-slate-500'}>0日消化（緊急）</span>
@@ -446,7 +446,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
               </ScatterChart>
             </ResponsiveContainer>
           </div>
-          <p className={`mt-6 text-[10px] font-black uppercase tracking-widest text-center italic ${isDark ? 'text-white/20' : 'text-slate-400'}`}>
+          <p className={`mt-6 text-[10px] font-black uppercase tracking-widest text-center italic ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
             ※ 赤いプロットは法的リスク対象（10日以上付与かつ5日未満消化）を示しています
           </p>
         </div>

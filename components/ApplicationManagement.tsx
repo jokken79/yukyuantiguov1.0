@@ -228,7 +228,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
               <div className={`h-10 md:h-14 w-2 ${stats.pending > 0 ? 'bg-yellow-500 shadow-[0_0_20px_#eab308]' : 'bg-green-500 shadow-[0_0_20px_#22c55e]'} animate-pulse`}></div>
               <h2 className={`text-3xl md:text-5xl lg:text-6xl font-black italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-800'}`}>申請管理</h2>
             </div>
-            <p className={`font-bold tracking-widest ml-6 md:ml-8 text-[10px] md:text-sm ${isDark ? 'text-white/30' : 'text-slate-500'}`}>
+            <p className={`font-bold tracking-widest ml-6 md:ml-8 text-[10px] md:text-sm ${isDark ? 'text-white/70' : 'text-slate-500'}`}>
               申請管理システム
             </p>
           </div>
@@ -264,38 +264,38 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
         <button
           onClick={() => setFilterStatus('pending')}
-          className={`p-4 md:p-6 border transition-all ${filterStatus === 'pending' ? 'border-yellow-500 bg-yellow-500/10' : isDark ? 'border-white/10 bg-white/5 hover:border-yellow-500/50' : 'border-slate-200 bg-white hover:border-yellow-500/50 shadow-sm'}`}
+          className={`p-4 md:p-6 border transition-all ${filterStatus === 'pending' ? 'border-yellow-500 bg-yellow-500/10' : isDark ? 'border-white/20 bg-white/10 hover:border-yellow-500/50' : 'border-slate-200 bg-white hover:border-yellow-500/50 shadow-sm'}`}
         >
-          <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>保留中</p>
+          <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>保留中</p>
           <p className="text-2xl md:text-4xl font-black text-yellow-500">{stats.pending}</p>
         </button>
         <button
           onClick={() => setFilterStatus('approved')}
-          className={`p-4 md:p-6 border transition-all ${filterStatus === 'approved' ? 'border-green-500 bg-green-500/10' : isDark ? 'border-white/10 bg-white/5 hover:border-green-500/50' : 'border-slate-200 bg-white hover:border-green-500/50 shadow-sm'}`}
+          className={`p-4 md:p-6 border transition-all ${filterStatus === 'approved' ? 'border-green-500 bg-green-500/10' : isDark ? 'border-white/20 bg-white/10 hover:border-green-500/50' : 'border-slate-200 bg-white hover:border-green-500/50 shadow-sm'}`}
         >
-          <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>承認済</p>
+          <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>承認済</p>
           <p className="text-2xl md:text-4xl font-black text-green-500">{stats.approved}</p>
         </button>
         <button
           onClick={() => setFilterStatus('rejected')}
-          className={`p-4 md:p-6 border transition-all ${filterStatus === 'rejected' ? 'border-red-500 bg-red-500/10' : isDark ? 'border-white/10 bg-white/5 hover:border-red-500/50' : 'border-slate-200 bg-white hover:border-red-500/50 shadow-sm'}`}
+          className={`p-4 md:p-6 border transition-all ${filterStatus === 'rejected' ? 'border-red-500 bg-red-500/10' : isDark ? 'border-white/20 bg-white/10 hover:border-red-500/50' : 'border-slate-200 bg-white hover:border-red-500/50 shadow-sm'}`}
         >
-          <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>却下</p>
+          <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>却下</p>
           <p className="text-2xl md:text-4xl font-black text-red-500">{stats.rejected}</p>
         </button>
         <button
           onClick={() => setFilterStatus('all')}
-          className={`p-4 md:p-6 border transition-all ${filterStatus === 'all' ? 'border-blue-500 bg-blue-500/10' : isDark ? 'border-white/10 bg-white/5 hover:border-blue-500/50' : 'border-slate-200 bg-white hover:border-blue-500/50 shadow-sm'}`}
+          className={`p-4 md:p-6 border transition-all ${filterStatus === 'all' ? 'border-blue-500 bg-blue-500/10' : isDark ? 'border-white/20 bg-white/10 hover:border-blue-500/50' : 'border-slate-200 bg-white hover:border-blue-500/50 shadow-sm'}`}
         >
-          <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>全件</p>
+          <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-1 md:mb-2 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>全件</p>
           <p className="text-2xl md:text-4xl font-black text-blue-500">{stats.total}</p>
         </button>
       </div>
 
       {/* Filters */}
-      <div className={`flex flex-wrap gap-3 md:gap-4 p-3 md:p-4 border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+      <div className={`flex flex-wrap gap-3 md:gap-4 p-3 md:p-4 border ${isDark ? 'bg-white/10 border-white/20' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
-          <label className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>派遣先</label>
+          <label className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>派遣先</label>
           <select
             value={filterClient}
             onChange={(e) => setFilterClient(e.target.value)}
@@ -306,7 +306,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>開始日</label>
+          <label className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>開始日</label>
           <input
             type="date"
             value={dateFrom}
@@ -315,7 +315,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>終了日</label>
+          <label className={`text-[8px] md:text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>終了日</label>
           <input
             type="date"
             value={dateTo}
@@ -326,7 +326,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
         <div className="flex items-end">
           <button
             onClick={() => { setFilterClient(''); setDateFrom(''); setDateTo(''); setFilterStatus('all'); }}
-            className={`px-3 md:px-4 py-2 text-xs font-bold transition-all ${isDark ? 'text-white/40 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`px-3 md:px-4 py-2 text-xs font-bold transition-all ${isDark ? 'text-white/80 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}
           >
             リセット
           </button>
@@ -334,12 +334,12 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
       </div>
 
       {/* Table */}
-      <div className={`border overflow-hidden ${isDark ? 'border-white/10' : 'border-slate-200 shadow-sm'}`}>
+      <div className={`border overflow-hidden ${isDark ? 'border-white/20' : 'border-slate-200 shadow-sm'}`}>
         {filteredRecords.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px]">
-              <thead className={isDark ? 'bg-white/5' : 'bg-slate-50'}>
-                <tr className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+              <thead className={isDark ? 'bg-white/10' : 'bg-slate-50'}>
+                <tr className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
                   {stats.pending > 0 && filterStatus !== 'approved' && filterStatus !== 'rejected' && (
                     <th className="p-3 md:p-4 text-left w-10">
                       <input
@@ -383,8 +383,8 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                       <td className={`p-3 md:p-4 font-bold text-sm md:text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{record.date}</td>
                       <td className="p-3 md:p-4">
                         <div className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-800'}`}>{emp ? getDisplayName(emp.name) : '不明'}</div>
-                        <div className={`text-[10px] md:text-xs ${isDark ? 'text-white/40' : 'text-slate-500'}`}>№{record.employeeId}</div>
-                        <div className={`text-[10px] md:hidden ${isDark ? 'text-white/30' : 'text-slate-400'}`}>{emp?.client || ''}</div>
+                        <div className={`text-[10px] md:text-xs ${isDark ? 'text-white/80' : 'text-slate-500'}`}>№{record.employeeId}</div>
+                        <div className={`text-[10px] md:hidden ${isDark ? 'text-white/70' : 'text-slate-400'}`}>{emp?.client || ''}</div>
                       </td>
                       <td className={`p-3 md:p-4 text-xs md:text-sm hidden md:table-cell ${isDark ? 'text-white/60' : 'text-slate-600'}`}>{emp?.client || '不明'}</td>
                       <td className="p-3 md:p-4">
@@ -392,10 +392,10 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                           {record.type === 'paid' ? '有給' : record.type === 'special' ? '特別' : '欠勤'}
                         </span>
                       </td>
-                      <td className={`p-3 md:p-4 text-xs hidden lg:table-cell ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+                      <td className={`p-3 md:p-4 text-xs hidden lg:table-cell ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
                         {new Date(record.createdAt).toLocaleDateString('ja-JP')}
                       </td>
-                      <td className={`p-3 md:p-4 text-xs max-w-[150px] truncate hidden lg:table-cell ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+                      <td className={`p-3 md:p-4 text-xs max-w-[150px] truncate hidden lg:table-cell ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
                         {record.note || '-'}
                       </td>
                       <td className="p-3 md:p-4">
@@ -415,7 +415,7 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
                             </button>
                           </div>
                         ) : (
-                          <div className={`text-[10px] md:text-xs text-center ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                          <div className={`text-[10px] md:text-xs text-center ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
                             {record.approvedAt && (
                               <span>{new Date(record.approvedAt).toLocaleDateString('ja-JP')}</span>
                             )}
@@ -431,13 +431,13 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({ data, onU
         ) : (
           <div className={`p-12 md:p-20 text-center ${isDark ? 'bg-black' : 'bg-white'}`}>
             <div className={`text-4xl md:text-6xl mb-4 ${isDark ? 'opacity-10' : 'opacity-20'}`}>📋</div>
-            <p className={`font-bold ${isDark ? 'text-white/30' : 'text-slate-400'}`}>該当する申請がありません</p>
+            <p className={`font-bold ${isDark ? 'text-white/70' : 'text-slate-400'}`}>該当する申請がありません</p>
           </div>
         )}
       </div>
 
       {/* Footer info */}
-      <div className={`text-xs text-center ${isDark ? 'text-white/20' : 'text-slate-400'}`}>
+      <div className={`text-xs text-center ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
         表示件数: {filteredRecords.length} / 全{data.records.length}件
       </div>
     </div>

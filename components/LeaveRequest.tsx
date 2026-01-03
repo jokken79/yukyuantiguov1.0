@@ -269,7 +269,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left: Input Form */}
         <div className="lg:col-span-7">
-          <form onSubmit={handleSubmit} className={`p-8 rounded-3xl space-y-6 ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
+          <form onSubmit={handleSubmit} className={`p-8 rounded-3xl space-y-6 ${isDark ? 'bg-white/10 border border-white/20' : 'bg-white border border-slate-200 shadow-lg'}`}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className={`text-sm font-semibold ${isDark ? 'text-white/60' : 'text-slate-600'}`}>工場（派遣先）</label>
@@ -279,7 +279,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                     setSelectedClient(e.target.value);
                     setFormData(prev => ({ ...prev, employeeId: '' }));
                   }}
-                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
+                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 >
                   <option value="" className={isDark ? 'bg-black' : 'bg-white'}>工場を選択</option>
@@ -293,7 +293,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                   value={formData.employeeId}
                   onChange={(e) => setFormData(prev => ({ ...prev, employeeId: e.target.value }))}
                   disabled={!selectedClient}
-                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
+                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 >
                   <option value="" className={isDark ? 'bg-black' : 'bg-white'}>
@@ -339,7 +339,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                   </div>
                 </div>
                 {calculatedTotals.balance > 0 && (
-                  <div className={`text-right text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
+                  <div className={`text-right text-xs ${isDark ? 'text-white/80' : 'text-slate-400'}`}>
                     <p>付与: {calculatedTotals.totalGranted}日</p>
                     <p>消化: {calculatedTotals.totalUsed}日</p>
                   </div>
@@ -354,7 +354,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
+                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                   required
                 />
                 {/* Warning if date already taken */}
@@ -370,7 +370,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
-                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
+                  className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-white/10 border border-white/20 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}
                 >
                   <option value="paid" className={isDark ? 'bg-black' : 'bg-white'}>有給休暇 (全休)</option>
                   <option value="special" className={isDark ? 'bg-black' : 'bg-white'}>特別休暇</option>
@@ -385,13 +385,13 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                 value={formData.note}
                 onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
                 placeholder="私用、冠婚葬祭など..."
-                className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none h-24 resize-none ${isDark ? 'bg-white/5 border border-white/10 text-white placeholder:text-white/30' : 'bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
+                className={`w-full rounded-xl px-4 py-3 focus:border-indigo-500 transition-all outline-none h-24 resize-none ${isDark ? 'bg-white/10 border border-white/20 text-white placeholder:text-white/70' : 'bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
               />
             </div>
 
             {/* Mini Calendar - shows current and next month with taken dates */}
             {selectedEmployee && allLeaveHistory.length > 0 && (
-              <div className={`p-4 rounded-2xl ${isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-100'}`}>
+              <div className={`p-4 rounded-2xl ${isDark ? 'bg-white/10 border border-white/20' : 'bg-slate-50 border border-slate-100'}`}>
                 <p className={`text-xs font-semibold mb-3 ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
                   📅 取得済み日付（直近2ヶ月）
                 </p>
@@ -417,7 +417,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                         </p>
                         <div className="grid grid-cols-7 gap-0.5 text-[9px]">
                           {['日', '月', '火', '水', '木', '金', '土'].map(d => (
-                            <div key={d} className={`text-center py-0.5 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>{d}</div>
+                            <div key={d} className={`text-center py-0.5 ${isDark ? 'text-white/70' : 'text-slate-400'}`}>{d}</div>
                           ))}
                           {Array.from({ length: firstDay }).map((_, i) => (
                             <div key={`empty-${i}`} />
@@ -446,7 +446,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                     );
                   })}
                 </div>
-                <p className={`text-[9px] mt-2 text-center ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                <p className={`text-[9px] mt-2 text-center ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
                   <span className="inline-block w-2 h-2 bg-pink-500 rounded mr-1"></span>取得済み
                   <span className="inline-block w-2 h-2 bg-indigo-500/30 rounded ml-3 mr-1"></span>今日
                 </p>
@@ -466,7 +466,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
         {/* Right: Analysis & Summary Card + History */}
         <div className="lg:col-span-5 space-y-6">
           {/* Employee Summary Card */}
-          <div className={`p-6 rounded-3xl relative overflow-hidden group ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
+          <div className={`p-6 rounded-3xl relative overflow-hidden group ${isDark ? 'bg-white/10 border border-white/20' : 'bg-white border border-slate-200 shadow-lg'}`}>
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl group-hover:bg-indigo-500/10 transition-all"></div>
 
             <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>
@@ -477,27 +477,27 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
               <div className="space-y-4">
                 <div className={`flex justify-between items-end pb-4 ${isDark ? 'border-b border-white/5' : 'border-b border-slate-100'}`}>
                   <div>
-                    <p className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Employee</p>
+                    <p className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>Employee</p>
                     <h4 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.name}</h4>
                     <p className="text-indigo-500 text-sm font-medium">{selectedEmployee.client} / №{selectedEmployee.id}</p>
                   </div>
                   <div className="text-right">
-                    <p className={`text-[10px] font-bold mb-1 uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>残高</p>
+                    <p className={`text-[10px] font-bold mb-1 uppercase ${isDark ? 'text-white/80' : 'text-slate-400'}`}>残高</p>
                     <div className="text-4xl font-black gradient-text">{calculatedTotals.balance}<span className={`text-sm ml-1 ${isDark ? 'text-white' : 'text-slate-600'}`}>日</span></div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
-                    <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>付与</p>
+                  <div className={`p-3 rounded-xl ${isDark ? 'bg-white/10 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
+                    <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-400'}`}>付与</p>
                     <p className="text-lg font-bold text-green-500">{calculatedTotals.totalGranted}</p>
                   </div>
-                  <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
-                    <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>消化</p>
+                  <div className={`p-3 rounded-xl ${isDark ? 'bg-white/10 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
+                    <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-400'}`}>消化</p>
                     <p className="text-lg font-bold text-pink-500">{calculatedTotals.totalUsed}</p>
                   </div>
-                  <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
-                    <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/40' : 'text-slate-400'}`}>時効</p>
+                  <div className={`p-3 rounded-xl ${isDark ? 'bg-white/10 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
+                    <p className={`text-[9px] font-bold uppercase ${isDark ? 'text-white/80' : 'text-slate-400'}`}>時効</p>
                     <p className="text-lg font-bold text-orange-500">{calculatedTotals.expiredCount}</p>
                   </div>
                 </div>
@@ -505,7 +505,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
             ) : (
               <div className="py-12 text-center space-y-3">
                 <div className={`text-5xl ${isDark ? 'opacity-10' : 'opacity-20'}`}>👤</div>
-                <p className={`text-sm font-medium italic ${isDark ? 'text-white/20' : 'text-slate-400'}`}>
+                <p className={`text-sm font-medium italic ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
                   従業員を選択してください
                 </p>
               </div>
@@ -513,7 +513,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
           </div>
 
           {/* Leave History Table - 有給取得履歴 */}
-          <div className={`p-6 rounded-3xl ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
+          <div className={`p-6 rounded-3xl ${isDark ? 'bg-white/10 border border-white/20' : 'bg-white border border-slate-200 shadow-lg'}`}>
             <div className="flex items-center justify-between mb-4">
               <h4 className={`text-lg font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>
                 <span className="text-xl">📅</span> 有給取得履歴
@@ -527,8 +527,8 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
 
             {/* Mostrar 入社日 si existe */}
             {selectedEmployee?.entryDate && (
-              <div className={`mb-4 px-3 py-2 rounded-lg text-xs ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                <span className={isDark ? 'text-white/40' : 'text-slate-400'}>入社日: </span>
+              <div className={`mb-4 px-3 py-2 rounded-lg text-xs ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                <span className={isDark ? 'text-white/80' : 'text-slate-400'}>入社日: </span>
                 <span className="text-indigo-500 font-bold">
                   {new Date(selectedEmployee.entryDate).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </span>
@@ -560,12 +560,12 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                             }`}>
                               {yearGroup.period}
                             </span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'text-white/50 bg-white/5' : 'text-slate-500 bg-slate-100'}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'text-white/50 bg-white/10' : 'text-slate-500 bg-slate-100'}`}>
                               付与{yearGroup.daysGranted}日
                             </span>
-                            <span className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>({yearGroup.dates.length}日消化)</span>
+                            <span className={`text-xs ${isDark ? 'text-white/80' : 'text-slate-400'}`}>({yearGroup.dates.length}日消化)</span>
                           </div>
-                          <div className={`text-[9px] flex gap-2 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                          <div className={`text-[9px] flex gap-2 ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
                             <span>付与: {yearGroup.grantDate}</span>
                             <span>→ 時効: {yearGroup.expiryDate}</span>
                           </div>
@@ -591,14 +591,14 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                             className={`text-[11px] font-mono py-1.5 px-2 rounded text-center ${
                               yearGroup.isExpired
                                 ? 'bg-red-500/5 text-red-400/60 line-through'
-                                : isDark ? 'bg-white/5 text-white/80' : 'bg-slate-50 text-slate-600'
+                                : isDark ? 'bg-white/10 text-white/80' : 'bg-slate-50 text-slate-600'
                             }`}
                           >
                             {new Date(date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
                           </div>
                         ))}
                         {yearGroup.dates.length > 12 && (
-                          <div className={`text-[10px] py-1.5 px-2 text-center ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                          <div className={`text-[10px] py-1.5 px-2 text-center ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
                             +{yearGroup.dates.length - 12}件
                           </div>
                         )}
@@ -617,19 +617,19 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
               ) : (
                 <div className="py-8 text-center space-y-2">
                   <div className={`text-3xl ${isDark ? 'opacity-20' : 'opacity-30'}`}>📭</div>
-                  <p className={`text-sm ${isDark ? 'text-white/30' : 'text-slate-400'}`}>取得履歴なし</p>
-                  <p className={`text-xs ${isDark ? 'text-white/20' : 'text-slate-300'}`}>有給休暇管理.xlsmを同期してください</p>
+                  <p className={`text-sm ${isDark ? 'text-white/70' : 'text-slate-400'}`}>取得履歴なし</p>
+                  <p className={`text-xs ${isDark ? 'text-white/70' : 'text-slate-300'}`}>有給休暇管理.xlsmを同期してください</p>
                 </div>
               )
             ) : (
               <div className="py-8 text-center">
-                <p className={`text-sm italic ${isDark ? 'text-white/20' : 'text-slate-400'}`}>従業員選択後に表示</p>
+                <p className={`text-sm italic ${isDark ? 'text-white/70' : 'text-slate-400'}`}>従業員選択後に表示</p>
               </div>
             )}
           </div>
 
           {/* Monthly Stats */}
-          <div className={`p-4 rounded-2xl ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-slate-200 shadow-lg'}`}>
+          <div className={`p-4 rounded-2xl ${isDark ? 'bg-white/10 border border-white/20' : 'bg-white border border-slate-200 shadow-lg'}`}>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-pink-500/20 rounded-xl flex items-center justify-center text-pink-500 text-xl font-bold">
                 {data.records.filter(r => {
@@ -638,7 +638,7 @@ const LeaveRequest: React.FC<LeaveRequestProps> = ({ data, onSuccess }) => {
                   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
                 }).length}
               </div>
-              <div className={`text-xs leading-tight ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+              <div className={`text-xs leading-tight ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
                 今月の申請件数（全社員）
               </div>
             </div>

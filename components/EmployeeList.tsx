@@ -90,7 +90,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
 
   const SortIcon = ({ columnKey }: { columnKey: SortKey }) => {
     if (sortKey !== columnKey) {
-      return <span className={`ml-1 ${isDark ? 'text-white/20' : 'text-slate-300'}`}>↕</span>;
+      return <span className={`ml-1 ${isDark ? 'text-white/70' : 'text-slate-300'}`}>↕</span>;
     }
     return <span className="ml-1 text-blue-500">{sortOrder === 'asc' ? '↑' : '↓'}</span>;
   };
@@ -123,22 +123,22 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
               <div className="h-8 md:h-10 w-2 bg-blue-500"></div>
               <h2 className={`text-3xl md:text-5xl font-black italic tracking-tighter ${isDark ? 'aggressive-text' : 'text-slate-800'}`}>社員台帳</h2>
             </div>
-            <p className={`font-black tracking-[0.2em] md:tracking-[0.4em] ml-6 md:ml-8 text-[10px] md:text-xs ${isDark ? 'text-white/30' : 'text-slate-500'}`}>有給休暇管理システム</p>
+            <p className={`font-black tracking-[0.2em] md:tracking-[0.4em] ml-6 md:ml-8 text-[10px] md:text-xs ${isDark ? 'text-white/70' : 'text-slate-500'}`}>有給休暇管理システム</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 items-stretch sm:items-center">
             <div className="relative w-full sm:w-64 md:w-96">
-              <span className={`absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-base md:text-lg ${isDark ? 'text-white/20' : 'text-slate-400'}`}>/</span>
+              <span className={`absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-base md:text-lg ${isDark ? 'text-white/70' : 'text-slate-400'}`}>/</span>
               <input
                 type="text"
                 placeholder="社員番号・氏名で検索..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`border rounded-none pl-10 md:pl-14 pr-4 md:pr-8 py-3 md:py-5 w-full focus:outline-none focus:border-blue-500 transition-all font-bold text-sm ${isDark ? 'bg-[#0a0a0a] border-white/10 text-white placeholder:text-white/30' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
+                className={`border rounded-none pl-10 md:pl-14 pr-4 md:pr-8 py-3 md:py-5 w-full focus:outline-none focus:border-blue-500 transition-all font-bold text-sm ${isDark ? 'bg-[#0a0a0a] border-white/20 text-white placeholder:text-white/70' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
               />
             </div>
             <div className="flex gap-2 md:gap-4">
-              <button onClick={handleExportCSV} className={`flex-1 sm:flex-none border px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'}`}>CSV出力</button>
+              <button onClick={handleExportCSV} className={`flex-1 sm:flex-none border px-4 md:px-8 py-3 md:py-5 text-[9px] md:text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-white/10 border-white/20 hover:bg-white/10 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'}`}>CSV出力</button>
               <button
                 onClick={handleExportExcel}
                 disabled={exportingExcel}
@@ -154,7 +154,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
         </div>
 
         {/* Results info and pagination controls */}
-        <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 px-2 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+        <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 px-2 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
           <div className="text-xs font-bold">
             {sorted.length > 0 ? (
               <>全 {sorted.length} 件中 {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, sorted.length)} 件を表示</>
@@ -181,7 +181,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[800px]">
             <thead>
-              <tr className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] border-b ${isDark ? 'bg-white/[0.02] text-white/30 border-white/5' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+              <tr className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] border-b ${isDark ? 'bg-white/[0.02] text-white/70 border-white/5' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
                 <th className="px-4 md:px-10 py-4 md:py-6 cursor-pointer hover:text-blue-500 transition-colors" onClick={() => handleSort('id')}>
                   社員№<SortIcon columnKey="id" />
                 </th>
@@ -219,10 +219,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                       }}
                       className={`transition-colors group cursor-pointer ${isDark ? 'hover:bg-white/[0.02]' : 'hover:bg-slate-50'}`}
                     >
-                      <td className={`px-4 md:px-10 py-4 md:py-8 font-black italic text-xs md:text-sm group-hover:text-blue-500 transition-colors ${isDark ? 'text-white/20' : 'text-slate-400'}`}>#{emp.id}</td>
+                      <td className={`px-4 md:px-10 py-4 md:py-8 font-black italic text-xs md:text-sm group-hover:text-blue-500 transition-colors ${isDark ? 'text-white/70' : 'text-slate-400'}`}>#{emp.id}</td>
                       <td className="px-4 md:px-10 py-4 md:py-8">
                         <div className={`font-black text-base md:text-lg tracking-tight group-hover:translate-x-1 transition-transform ${isDark ? 'text-white' : 'text-slate-800'}`}>{displayName}</div>
-                        <div className={`text-[9px] md:text-[10px] font-bold mt-1 tracking-widest ${isDark ? 'text-white/30' : 'text-slate-500'}`}>{emp.client}</div>
+                        <div className={`text-[9px] md:text-[10px] font-bold mt-1 tracking-widest ${isDark ? 'text-white/70' : 'text-slate-500'}`}>{emp.client}</div>
                       </td>
                       <td className={`px-4 md:px-10 py-4 md:py-8 text-center ${isDark ? 'text-white' : 'text-slate-800'}`}>
                         <div className="font-black text-xs md:text-sm">
@@ -230,14 +230,14 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                         </div>
                       </td>
                       <td className="px-4 md:px-10 py-4 md:py-8 text-center">
-                        <span className={`font-black text-xs md:text-sm ${(emp.currentUsedTotal !== undefined ? emp.currentUsedTotal : emp.usedTotal) === 0 ? isDark ? 'text-white/20' : 'text-slate-300' : 'text-red-500'}`}>
+                        <span className={`font-black text-xs md:text-sm ${(emp.currentUsedTotal !== undefined ? emp.currentUsedTotal : emp.usedTotal) === 0 ? isDark ? 'text-white/70' : 'text-slate-300' : 'text-red-500'}`}>
                           {emp.currentUsedTotal !== undefined ? emp.currentUsedTotal : emp.usedTotal}日
                         </span>
                       </td>
                       <td className="px-4 md:px-10 py-4 md:py-8 text-center">
                         <div className="flex flex-col items-center">
                           <div className={`inline-block px-3 md:px-5 py-1 md:py-2 border-2 font-black text-[10px] md:text-xs ${
-                            (emp.currentBalance !== undefined ? emp.currentBalance : emp.balance) < 5 ? 'border-red-600 text-red-600' : isDark ? 'border-white/10 text-white' : 'border-slate-200 text-slate-800'
+                            (emp.currentBalance !== undefined ? emp.currentBalance : emp.balance) < 5 ? 'border-red-600 text-red-600' : isDark ? 'border-white/20 text-white' : 'border-slate-200 text-slate-800'
                           }`}>
                             残{emp.currentBalance !== undefined ? emp.currentBalance : emp.balance}日
                           </div>
@@ -272,7 +272,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                 <tr>
                   <td colSpan={7} className="py-20 text-center">
                     <div className={`text-4xl mb-4 ${isDark ? 'opacity-10' : 'opacity-20'}`}>📋</div>
-                    <p className={`font-bold ${isDark ? 'text-white/30' : 'text-slate-400'}`}>該当する社員がいません</p>
+                    <p className={`font-bold ${isDark ? 'text-white/70' : 'text-slate-400'}`}>該当する社員がいません</p>
                   </td>
                 </tr>
               )}
@@ -288,14 +288,14 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/5 hover:bg-white/10 text-white border border-white/10' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
+              className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
             >
               ««
             </button>
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/5 hover:bg-white/10 text-white border border-white/10' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
+              className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
             >
               «
             </button>
@@ -320,7 +320,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                     className={`w-8 h-8 text-xs font-bold transition-all ${
                       currentPage === pageNum
                         ? 'bg-blue-500 text-white'
-                        : isDark ? 'bg-white/5 hover:bg-white/10 text-white border border-white/10' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'
+                        : isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'
                     }`}
                   >
                     {pageNum}
@@ -332,19 +332,19 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/5 hover:bg-white/10 text-white border border-white/10' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
+              className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
             >
               »
             </button>
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/5 hover:bg-white/10 text-white border border-white/10' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
+              className={`px-3 py-2 text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'}`}
             >
               »»
             </button>
           </div>
-          <div className={`text-xs font-bold ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+          <div className={`text-xs font-bold ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
             {currentPage} / {totalPages} ページ
           </div>
         </div>
@@ -357,7 +357,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
           onClick={() => setShowHistoryModal(false)}
         >
           <div
-            className={`max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-3xl p-8 ${isDark ? 'bg-[#0a0a0a] border border-white/10' : 'bg-white border border-slate-200'}`}
+            className={`max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-3xl p-8 ${isDark ? 'bg-[#0a0a0a] border border-white/20' : 'bg-white border border-slate-200'}`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -380,26 +380,26 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
 
             {/* Resumen de Totales */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>付与 (現在)</p>
+              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>付与 (現在)</p>
                 <p className="text-2xl font-black text-green-500">
                   {selectedEmployee.currentGrantedTotal ?? selectedEmployee.grantedTotal}日
                 </p>
               </div>
-              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>消化 (現在)</p>
+              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>消化 (現在)</p>
                 <p className="text-2xl font-black text-pink-500">
                   {selectedEmployee.currentUsedTotal ?? selectedEmployee.usedTotal}日
                 </p>
               </div>
-              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>残高</p>
+              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>残高</p>
                 <p className="text-2xl font-black text-blue-500">
                   {selectedEmployee.currentBalance ?? selectedEmployee.balance}日
                 </p>
               </div>
-              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>時効</p>
+              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>時効</p>
                 <p className="text-2xl font-black text-orange-500">
                   {selectedEmployee.historicalExpiredCount ?? selectedEmployee.expiredCount ?? 0}日
                 </p>
@@ -408,19 +408,19 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
 
             {/* Totales Históricos */}
             {selectedEmployee.historicalGrantedTotal !== undefined && (
-              <div className={`mb-6 p-4 rounded-xl ${isDark ? 'bg-white/5 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
+              <div className={`mb-6 p-4 rounded-xl ${isDark ? 'bg-white/10 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
                 <p className={`text-xs font-bold mb-2 ${isDark ? 'text-white/60' : 'text-slate-600'}`}>📊 全期間合計</p>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <p className={`text-[9px] ${isDark ? 'text-white/40' : 'text-slate-400'}`}>付与合計</p>
+                    <p className={`text-[9px] ${isDark ? 'text-white/80' : 'text-slate-400'}`}>付与合計</p>
                     <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.historicalGrantedTotal}日</p>
                   </div>
                   <div>
-                    <p className={`text-[9px] ${isDark ? 'text-white/40' : 'text-slate-400'}`}>消化合計</p>
+                    <p className={`text-[9px] ${isDark ? 'text-white/80' : 'text-slate-400'}`}>消化合計</p>
                     <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.historicalUsedTotal}日</p>
                   </div>
                   <div>
-                    <p className={`text-[9px] ${isDark ? 'text-white/40' : 'text-slate-400'}`}>残高合計</p>
+                    <p className={`text-[9px] ${isDark ? 'text-white/80' : 'text-slate-400'}`}>残高合計</p>
                     <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.historicalBalance}日</p>
                   </div>
                 </div>
@@ -434,8 +434,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
               </h4>
 
               {selectedEmployee.entryDate && (
-                <div className={`mb-4 px-3 py-2 rounded-lg text-xs ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                  <span className={isDark ? 'text-white/40' : 'text-slate-400'}>入社日: </span>
+                <div className={`mb-4 px-3 py-2 rounded-lg text-xs ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                  <span className={isDark ? 'text-white/80' : 'text-slate-400'}>入社日: </span>
                   <span className="text-indigo-500 font-bold">
                     {new Date(selectedEmployee.entryDate).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </span>
@@ -463,12 +463,12 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                             }`}>
                               {period.periodName}
                             </span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'text-white/50 bg-white/5' : 'text-slate-500 bg-slate-100'}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'text-white/50 bg-white/10' : 'text-slate-500 bg-slate-100'}`}>
                               付与{period.granted}日
                             </span>
-                            <span className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>({period.used}日消化)</span>
+                            <span className={`text-xs ${isDark ? 'text-white/80' : 'text-slate-400'}`}>({period.used}日消化)</span>
                           </div>
-                          <div className={`text-[9px] flex gap-2 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                          <div className={`text-[9px] flex gap-2 ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
                             <span>付与: {new Date(period.grantDate).toLocaleDateString('ja-JP')}</span>
                             <span>→ 時効: {new Date(period.expiryDate).toLocaleDateString('ja-JP')}</span>
                           </div>
@@ -491,14 +491,14 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                               className={`text-[11px] font-mono py-1.5 px-2 rounded text-center ${
                                 period.isExpired
                                   ? 'bg-red-500/5 text-red-400/60 line-through'
-                                  : isDark ? 'bg-white/5 text-white/80' : 'bg-slate-50 text-slate-600'
+                                  : isDark ? 'bg-white/10 text-white/80' : 'bg-slate-50 text-slate-600'
                               }`}
                             >
                               {new Date(date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
                             </div>
                           ))}
                           {period.yukyuDates.length > 16 && (
-                            <div className={`text-[10px] py-1.5 px-2 text-center ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                            <div className={`text-[10px] py-1.5 px-2 text-center ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
                               +{period.yukyuDates.length - 16}件
                             </div>
                           )}
@@ -518,8 +518,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
               ) : (
                 <div className="py-8 text-center space-y-2">
                   <div className={`text-3xl ${isDark ? 'opacity-20' : 'opacity-30'}`}>📭</div>
-                  <p className={`text-sm ${isDark ? 'text-white/30' : 'text-slate-400'}`}>期間別データなし</p>
-                  <p className={`text-xs ${isDark ? 'text-white/20' : 'text-slate-300'}`}>有給休暇管理.xlsmを同期してください</p>
+                  <p className={`text-sm ${isDark ? 'text-white/70' : 'text-slate-400'}`}>期間別データなし</p>
+                  <p className={`text-xs ${isDark ? 'text-white/70' : 'text-slate-300'}`}>有給休暇管理.xlsmを同期してください</p>
                 </div>
               )}
             </div>

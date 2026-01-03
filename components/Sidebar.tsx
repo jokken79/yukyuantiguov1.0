@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 
@@ -10,6 +10,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const { isDark } = useTheme();
+  const [isOpen, setIsOpen] = useState(false);
+
   const tabs = [
     { id: 'dashboard', icon: 'M13 10V3L4 14h7v7l9-11h-7z', label: '有給分析コア' },
     { id: 'employees', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197', label: '従業員リスト' },
@@ -19,8 +21,52 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'sync', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', label: 'データ同期' },
   ];
 
+  const handleTabClick = (tabId: string) => {
+    setActiveTab(tabId);
+    setIsOpen(false); // Cerrar menú móvil al cambiar de tab
+  };
+
   return (
-    <div className={`w-80 h-full cyber-glass flex flex-col z-50 border-r relative ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
+    <>
+      {/* Botón Hamburger (solo mobile) */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`lg:hidden fixed top-4 left-4 z-50 p-3 rounded-lg transition-all duration-300 ${
+          isDark
+            ? 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.5)]'
+            : 'bg-blue-500 hover:bg-blue-600 shadow-lg'
+        }`}
+        aria-label="メニューを開く"
+      >
+        <svg
+          className="w-6 h-6 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          {isOpen ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          )}
+        </svg>
+      </button>
+
+      {/* Backdrop (solo mobile) */}
+      <div
+        className={`fixed inset-0 bg-black/50 lg:hidden transition-opacity duration-300 z-40 ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* Sidebar */}
+      <div className={`fixed lg:relative w-80 h-full cyber-glass flex flex-col z-50 border-r transition-transform duration-300 ease-in-out ${
+        isDark ? 'border-white/5' : 'border-slate-200'
+      } ${
+        isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
       {/* Intense Brand Section */}
       <div className="p-10">
         <div className={`relative group overflow-hidden rounded-3xl p-8 border glitch-hover transition-all duration-300 ${
@@ -40,7 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             </div>
 
             <div className="mt-8 flex flex-col items-center">
-              <div className={`text-[10px] font-black tracking-[0.5em] mb-1 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>ユニバーサル企画</div>
+              <div className={`text-[10px] font-black tracking-[0.5em] mb-1 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>ユニバーサル企画</div>
               <div className="h-0.5 w-full bg-gradient-to-r from-blue-500 via-white to-red-500"></div>
               <div className={`text-lg font-black italic tracking-tighter mt-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>有給PRO V1.0</div>
             </div>
@@ -52,11 +98,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
             className={`w-full group flex items-center gap-6 px-6 py-4 rounded-2xl transition-all duration-300 relative ${
               activeTab === tab.id
                 ? isDark ? 'text-white translate-x-2' : 'text-slate-800 translate-x-2'
-                : isDark ? 'text-white/30 hover:text-white/70' : 'text-slate-400 hover:text-slate-700'
+                : isDark ? 'text-white/70 hover:text-white' : 'text-slate-400 hover:text-slate-700'
             }`}
           >
             {activeTab === tab.id && (
@@ -80,12 +126,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         {/* System Status */}
         <div className={`p-4 rounded-xl border relative overflow-hidden group ${
           isDark
-            ? 'bg-white/[0.02] border-white/5'
+            ? 'bg-white/10 border-white/20'
             : 'bg-slate-50 border-slate-200'
         }`}>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-1 h-5 bg-green-500"></div>
-            <span className={`text-[9px] font-bold tracking-[0.2em] uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>システム状態</span>
+            <span className={`text-[9px] font-bold tracking-[0.2em] uppercase ${isDark ? 'text-white/80' : 'text-slate-500'}`}>システム状態</span>
           </div>
           <div className={`text-xs font-bold italic tracking-tight ${isDark ? 'text-white' : 'text-slate-700'}`}>
             <div className="flex items-center gap-2">
@@ -100,6 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

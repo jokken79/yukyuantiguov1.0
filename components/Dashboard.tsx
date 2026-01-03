@@ -84,11 +84,16 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     return Object.entries(clients).map(([name, value]) => ({ name, value }));
   }, [activeEmployees]);
 
-  // 4. トップユーザー (在職中のみ)
+  // 4. トップユーザー (在職中のみ) - カタカナ表示
   const topUsers = useMemo(() => {
     return [...activeEmployees]
       .sort((a, b) => (b.currentUsedTotal ?? b.usedTotal) - (a.currentUsedTotal ?? a.usedTotal))
-      .slice(0, 10);
+      .slice(0, 10)
+      .map(emp => ({
+        ...emp,
+        displayName: getDisplayName(emp.name), // カタカナ変換
+        usedTotal: emp.currentUsedTotal ?? emp.usedTotal ?? 0
+      }));
   }, [activeEmployees]);
 
   // 5. 法的リスクアラート (在職中で10日以上付与かつ5日未満消化)
@@ -152,7 +157,10 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const kpis = [
     { label: '有給対象', value: activeEmployees.length, suffix: '名', color: 'blue' },
     { label: '法的リスク', value: legalAlerts.length, suffix: '名', color: 'red' },
-    { label: '消化合計', value: activeEmployees.reduce((s, e) => s + (e.currentUsedTotal ?? e.usedTotal), 0), suffix: '日', color: 'white' },
+    { label: '消化合計', value: activeEmployees.reduce((s, e) => {
+      const used = e.currentUsedTotal ?? e.usedTotal ?? 0;
+      return s + (isNaN(used) ? 0 : used);
+    }, 0), suffix: '日', color: 'white' },
     { label: '遵守率', value: Math.round(((activeEmployees.length - legalAlerts.length) / (activeEmployees.length || 1)) * 100), suffix: '%', color: 'blue' },
   ];
 
@@ -259,8 +267,20 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topUsers} layout="vertical">
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" stroke={chartColors.axis} fontSize={10} axisLine={false} tickLine={false} width={80} fontWeight="900" />
-                <Tooltip cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }} />
+                <YAxis dataKey="displayName" type="category" stroke={chartColors.axis} fontSize={10} axisLine={false} tickLine={false} width={120} fontWeight="900" />
+                <Tooltip
+                  cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }}
+                  contentStyle={{
+                    backgroundColor: chartColors.tooltipBg,
+                    border: `1px solid ${chartColors.tooltipBorder}`,
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}
+                  formatter={(value: number) => [`${value}日`, '消化日数']}
+                  labelFormatter={(label: string) => label}
+                />
                 <Bar dataKey="usedTotal" fill={isDark ? "#7000ff" : "#8b5cf6"} barSize={12} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>

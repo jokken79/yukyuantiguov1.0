@@ -79,15 +79,27 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
           <div className={`absolute -inset-1 bg-gradient-to-r from-blue-600 to-red-600 blur transition duration-1000 group-hover:duration-200 ${isDark ? 'opacity-25 group-hover:opacity-100' : 'opacity-10 group-hover:opacity-30'}`}></div>
 
           <div className="relative flex flex-col items-center">
-            <div className="flex items-center justify-center gap-0">
-              <span className={`text-7xl font-black italic tracking-tighter leading-none transform -skew-x-12 ${isDark ? 'text-white drop-shadow-[0_0_15px_rgba(0,229,255,0.8)]' : 'text-blue-600 drop-shadow-[0_0_10px_rgba(37,99,235,0.4)]'}`}>U</span>
-              <div className={`h-16 w-1 mx-2 rotate-12 ${isDark ? 'bg-white' : 'bg-slate-300'}`}></div>
-              <span className={`text-7xl font-black italic tracking-tighter leading-none transform -skew-x-12 ${isDark ? 'text-white drop-shadow-[0_0_15px_rgba(255,0,76,0.8)]' : 'text-red-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.4)]'}`}>N</span>
-              <div className={`h-16 w-1 mx-2 rotate-12 ${isDark ? 'bg-white' : 'bg-slate-300'}`}></div>
-              <span className={`text-7xl font-black italic tracking-tighter leading-none transform -skew-x-12 ${isDark ? 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]' : 'text-slate-800 drop-shadow-[0_0_10px_rgba(0,0,0,0.2)]'}`}>S</span>
+            {/* Logo UNS con órbitas */}
+            <div className="w-40 h-32 flex items-center justify-center">
+              <img
+                src="/uns-logo.png"
+                alt="UNS - ユニバーサル企画"
+                className="w-full h-full object-contain drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+                onError={(e) => {
+                  // Fallback al texto si la imagen no carga
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              {/* Fallback text logo */}
+              <div className="hidden flex items-center justify-center gap-0">
+                <span className={`text-5xl font-black italic tracking-tighter leading-none ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>U</span>
+                <span className={`text-5xl font-black italic tracking-tighter leading-none ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>N</span>
+                <span className={`text-5xl font-black italic tracking-tighter leading-none ${isDark ? 'text-red-500' : 'text-red-600'}`}>S</span>
+              </div>
             </div>
 
-            <div className="mt-8 flex flex-col items-center">
+            <div className="mt-4 flex flex-col items-center">
               <div className={`text-[10px] font-black tracking-[0.5em] mb-1 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>ユニバーサル企画</div>
               <div className="h-0.5 w-full bg-gradient-to-r from-blue-500 via-white to-red-500"></div>
               <div className={`text-lg font-black italic tracking-tighter mt-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>有給PRO V1.0</div>

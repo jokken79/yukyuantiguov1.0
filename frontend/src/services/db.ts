@@ -339,6 +339,53 @@ export const db = {
     return true;
   },
 
+  // ⭐ NEW: Remove a yukyu date from an employee and recalculate balances
+  removeYukyuDate: (employeeId: string, date: string): boolean => {
+    const data = db.loadData();
+    const emp = data.employees.find(e => e.id === employeeId);
+
+    if (!emp) {
+      console.error('Employee not found:', employeeId);
+      return false;
+    }
+
+    if (!emp.yukyuDates || emp.yukyuDates.length === 0) {
+      console.warn('No yukyuDates to remove for:', employeeId);
+      return false;
+    }
+
+    // Check for both full day and half day formats
+    const dateIndex = emp.yukyuDates.findIndex(d => d === date || d === `${date}:half`);
+
+    if (dateIndex < 0) {
+      console.warn('Date not found in yukyuDates:', date);
+      return false;
+    }
+
+    // Remove the date
+    const removedDate = emp.yukyuDates.splice(dateIndex, 1)[0];
+    console.log(`✅ Removed yukyu date: ${removedDate} from employee ${emp.name}`);
+
+    // Also remove from localModifications if present
+    if (emp.localModifications?.approvedDates) {
+      const localIdx = emp.localModifications.approvedDates.indexOf(date);
+      if (localIdx >= 0) {
+        emp.localModifications.approvedDates.splice(localIdx, 1);
+      }
+    }
+
+    // Recalculate balance
+    const balance = getEmployeeBalance(emp);
+    emp.grantedTotal = balance.granted;
+    emp.usedTotal = balance.used;
+    emp.balance = balance.remaining;
+    emp.expiredCount = balance.expiredCount;
+
+    // Save changes
+    db.saveData(data);
+    return true;
+  },
+
   clearAll: () => {
     localStorage.removeItem(DB_KEY);
   }

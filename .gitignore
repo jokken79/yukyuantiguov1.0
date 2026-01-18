@@ -7,10 +7,33 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+frontend/node_modules
+
+# Build
 dist
 dist-ssr
+frontend/dist
+
+# Env files
 *.local
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+backend/venv/
+venv/
+.venv/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +46,7 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Uploads (sensitive employee data)
+uploads/
+backend/uploads/

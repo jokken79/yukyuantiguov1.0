@@ -9,6 +9,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { mergeExcelData, validateMerge, getMergeSummary } from '../services/mergeService';
 import { getEmployeeBalance } from '../services/balanceCalculator';
 import { convertNameToKatakana } from '../services/nameConverter';
+import { validationContext, logValidationResult } from '../services/parseValidation';
 
 interface ExcelSyncProps {
   onSyncComplete: () => void;
@@ -39,7 +40,7 @@ const loadSyncStatus = (): SyncStatus => {
   try {
     const saved = localStorage.getItem(SYNC_STATUS_KEY);
     if (saved) return JSON.parse(saved);
-  } catch {}
+  } catch { }
   return {
     daicho: { synced: false, count: 0, activeCount: 0, resignedCount: 0, lastSync: null },
     yukyu: { synced: false, count: 0, activeCount: 0, resignedCount: 0, lastSync: null },
@@ -250,7 +251,7 @@ const buildPeriodHistory = (
 
         if (!isNaN(yukyuStart.getTime()) && !isNaN(entry.getTime())) {
           const monthsDiff = (yukyuStart.getFullYear() - entry.getFullYear()) * 12
-                           + (yukyuStart.getMonth() - entry.getMonth());
+            + (yukyuStart.getMonth() - entry.getMonth());
           // Redondear al valor válido más cercano
           elapsedMonths = VALID_ELAPSED_MONTHS.reduce((prev, curr) =>
             Math.abs(curr - monthsDiff) < Math.abs(prev - monthsDiff) ? curr : prev
@@ -262,16 +263,24 @@ const buildPeriodHistory = (
 
     // Si sigue siendo 0, saltar esta fila (no tiene datos válidos de período)
     if (elapsedMonths === 0) {
-      console.warn(`⚠️ ${employeeId}: Saltando fila ${index} sin 経過月 válido`);
+      validationContext.skipRow(employeeId, '', `Row ${index}: Missing valid 経過月`, index);
       return;
     }
 
     const yukyuStartDateRaw = findValue(row, ['有給発生', '有給発生日']);
-    const granted = Number(findValue(row, ['付与数', '付与合計', '付与日数', '当期付与'])) || 0;
-    const used = Number(findValue(row, ['消化日数', '消化合計', '使用日数'])) || 0;
-    const balance = Number(findValue(row, ['期末残高', '残日数', '有給残', '残高'])) || 0;
-    const expired = Number(findValue(row, ['時効数', '時効', '消滅日数', '時効日数'])) || 0;
-    const carryOver = Number(findValue(row, ['繰越', '繰越日数'])) || undefined;
+
+    // ⭐ Use validation context for numeric parsing with error tracking
+    const grantedRaw = findValue(row, ['付与数', '付与合計', '付与日数', '当期付与']);
+    const usedRaw = findValue(row, ['消化日数', '消化合計', '使用日数']);
+    const balanceRaw = findValue(row, ['期末残高', '残日数', '有給残', '残高']);
+    const expiredRaw = findValue(row, ['時効数', '時効', '消滅日数', '時効日数']);
+    const carryOverRaw = findValue(row, ['繰越', '繰越日数']);
+
+    const granted = validationContext.parseNumber(grantedRaw, '付与数', employeeId, '', 0, index);
+    const used = validationContext.parseNumber(usedRaw, '消化日数', employeeId, '', 0, index);
+    const balance = validationContext.parseNumber(balanceRaw, '期末残高', employeeId, '', 0, index);
+    const expired = validationContext.parseNumber(expiredRaw, '時効数', employeeId, '', 0, index);
+    const carryOver = carryOverRaw ? validationContext.parseNumber(carryOverRaw, '繰越', employeeId, '', 0, index) : undefined;
 
     // Calcular fechas
     const yukyuStartDate = yukyuStartDateRaw ? excelDateToISO(yukyuStartDateRaw) : undefined;
@@ -287,7 +296,7 @@ const buildPeriodHistory = (
 
     // Determinar período actual
     const monthsFromEntry = (now.getFullYear() - entry.getFullYear()) * 12 +
-                            (now.getMonth() - entry.getMonth());
+      (now.getMonth() - entry.getMonth());
     const isCurrentPeriod = Math.abs(elapsedMonths - monthsFromEntry) <= 6;
 
     // ⭐ Usar la función calculatePeriodName() corregida
@@ -626,9 +635,8 @@ const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color,
       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={(e) => { e.preventDefault(); setIsDragging(false); const file = e.dataTransfer.files[0]; if (file) onProcess(file); }}
-      className={`relative border-2 border-dashed p-8 text-center transition-all duration-500 rounded-lg ${
-        isDragging ? `border-${color}-500 scale-[1.02]` : syncStatus.synced ? `border-${color}-500/30` : borderIdle
-      } ${bgColor} ${hoverBorder} ${!isDark && 'shadow-sm'}`}
+      className={`relative border-2 border-dashed p-8 text-center transition-all duration-500 rounded-lg ${isDragging ? `border-${color}-500 scale-[1.02]` : syncStatus.synced ? `border-${color}-500/30` : borderIdle
+        } ${bgColor} ${hoverBorder} ${!isDark && 'shadow-sm'}`}
     >
       <input
         type="file"
@@ -666,13 +674,12 @@ const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color,
               return (
                 <div
                   key={stage}
-                  className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold transition-all ${
-                    isActive
-                      ? `${color === 'green' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'} animate-pulse`
-                      : isComplete
-                        ? `${isDark ? 'bg-white/10 text-white/60' : 'bg-slate-100 text-slate-500'}`
-                        : `${isDark ? 'bg-white/5 text-white/20' : 'bg-slate-50 text-slate-300'}`
-                  }`}
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold transition-all ${isActive
+                    ? `${color === 'green' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'} animate-pulse`
+                    : isComplete
+                      ? `${isDark ? 'bg-white/10 text-white/60' : 'bg-slate-100 text-slate-500'}`
+                      : `${isDark ? 'bg-white/5 text-white/20' : 'bg-slate-50 text-slate-300'}`
+                    }`}
                 >
                   {isComplete ? '✓' : isActive ? '●' : '○'}
                   <span className="hidden sm:inline">
@@ -868,6 +875,9 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         setProgress(setProgressYukyu, 'processing');
         await new Promise(r => setTimeout(r, 100));
 
+        // ⭐ Reset validation context before processing
+        validationContext.reset();
+
         const currentAppData = db.loadData();
         const result = processYukyu(workbook, [...currentAppData.employees], syncStatus.includeResigned);
 
@@ -899,6 +909,20 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
             lastSync: new Date().toISOString()
           }
         }));
+
+        // ⭐ Show validation results
+        const validationResult = validationContext.getResult();
+        logValidationResult(validationResult);
+
+        if (validationResult.issues.length > 0) {
+          const summaryMsg = validationContext.getSummaryMessage();
+          toast(summaryMsg, {
+            icon: validationResult.summary.errors > 0 ? '⚠️' : 'ℹ️',
+            duration: 5000
+          });
+        } else {
+          toast.success(`${result.count}名の有給データを同期しました`, { duration: 3000 });
+        }
 
         onSyncComplete();
       } catch (err) {
@@ -978,18 +1002,15 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
       <div className="flex justify-center">
         <button
           onClick={toggleIncludeResigned}
-          className={`flex items-center gap-3 px-6 py-3 rounded-lg border transition-all ${
-            syncStatus.includeResigned
-              ? 'border-red-500/50 bg-red-500/10 text-red-400'
-              : isDark ? 'border-white/10 bg-white/5 text-white/60 hover:border-white/30' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
-          }`}
+          className={`flex items-center gap-3 px-6 py-3 rounded-lg border transition-all ${syncStatus.includeResigned
+            ? 'border-red-500/50 bg-red-500/10 text-red-400'
+            : isDark ? 'border-white/10 bg-white/5 text-white/60 hover:border-white/30' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
+            }`}
         >
-          <div className={`w-10 h-5 rounded-full relative transition-colors ${
-            syncStatus.includeResigned ? 'bg-red-500' : 'bg-white/20'
-          }`}>
-            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-              syncStatus.includeResigned ? 'translate-x-5' : 'translate-x-0.5'
-            }`} />
+          <div className={`w-10 h-5 rounded-full relative transition-colors ${syncStatus.includeResigned ? 'bg-red-500' : 'bg-white/20'
+            }`}>
+            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${syncStatus.includeResigned ? 'translate-x-5' : 'translate-x-0.5'
+              }`} />
           </div>
           <span className="text-sm font-bold">
             {syncStatus.includeResigned ? '退社者を含む' : '在職中のみ'}
@@ -1041,9 +1062,8 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         {/* Clear All Data Button - Dangerous Action */}
         <button
           onClick={clearAllData}
-          className={`group flex items-center gap-3 px-6 py-3 border-2 border-red-500/30 rounded-lg transition-all hover:border-red-500 hover:bg-red-500/10 ${
-            isDark ? 'bg-red-500/5' : 'bg-red-50'
-          }`}
+          className={`group flex items-center gap-3 px-6 py-3 border-2 border-red-500/30 rounded-lg transition-all hover:border-red-500 hover:bg-red-500/10 ${isDark ? 'bg-red-500/5' : 'bg-red-50'
+            }`}
         >
           <span className="text-2xl">🗑️</span>
           <div className="text-left">

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import FocusTrap from 'focus-trap-react';
 import Fuse from 'fuse.js';
@@ -6,6 +5,8 @@ import { Employee, PeriodHistory } from '../types';
 import { exportEmployeesToCSV, exportToPDF, exportEmployeesToExcel } from '../services/exportService';
 import { getDisplayName } from '../services/nameConverter';
 import { useTheme } from '../contexts/ThemeContext';
+import YukyuDateEditor from './YukyuDateEditor';
+import { db } from '../services/db';
 
 interface EmployeeListProps {
   employees: Employee[];
@@ -27,6 +28,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showDateEditor, setShowDateEditor] = useState(false);
 
   // Cerrar modal con ESC
   useEffect(() => {
@@ -251,11 +253,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                   setSelectedEmployee(emp);
                   setShowHistoryModal(true);
                 }}
-                className={`p-4 rounded-lg border cursor-pointer transition-all active:scale-[0.98] ${
-                  isDark
-                    ? 'bg-white/5 border-white/10 hover:bg-white/10'
-                    : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
-                }`}
+                className={`p-4 rounded-lg border cursor-pointer transition-all active:scale-[0.98] ${isDark
+                  ? 'bg-white/5 border-white/10 hover:bg-white/10'
+                  : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
+                  }`}
               >
                 {/* Header: Name + Status */}
                 <div className="flex justify-between items-start mb-3">
@@ -264,11 +265,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                     <p className={`text-xs ${isDark ? 'text-white/60' : 'text-slate-500'}`}>#{emp.id} • {emp.client}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-[10px] font-black rounded ${
-                      emp.status === '在職中'
-                        ? 'bg-green-500/20 text-green-400'
-                        : isDark ? 'bg-white/10 text-white/40' : 'bg-slate-100 text-slate-400'
-                    }`}>
+                    <span className={`px-2 py-1 text-[10px] font-black rounded ${emp.status === '在職中'
+                      ? 'bg-green-500/20 text-green-400'
+                      : isDark ? 'bg-white/10 text-white/40' : 'bg-slate-100 text-slate-400'
+                      }`}>
                       {emp.status}
                     </span>
                   </div>
@@ -413,9 +413,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                       </td>
                       <td className="px-4 md:px-10 py-4 md:py-8 text-center">
                         <div className="flex flex-col items-center">
-                          <div className={`inline-block px-3 md:px-5 py-1 md:py-2 border-2 font-black text-[10px] md:text-xs ${
-                            (emp.currentBalance !== undefined ? emp.currentBalance : emp.balance) < 5 ? 'border-red-600 text-red-600' : isDark ? 'border-white/20 text-white' : 'border-slate-200 text-slate-800'
-                          }`}>
+                          <div className={`inline-block px-3 md:px-5 py-1 md:py-2 border-2 font-black text-[10px] md:text-xs ${(emp.currentBalance !== undefined ? emp.currentBalance : emp.balance) < 5 ? 'border-red-600 text-red-600' : isDark ? 'border-white/20 text-white' : 'border-slate-200 text-slate-800'
+                            }`}>
                             残{emp.currentBalance !== undefined ? emp.currentBalance : emp.balance}日
                           </div>
                           {emp.excededDays !== undefined && emp.excededDays > 0 && (
@@ -427,9 +426,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                       </td>
                       <td className="px-4 md:px-10 py-4 md:py-8 text-center">
                         {isMandatoryTarget ? (
-                          <span className={`px-2 md:px-4 py-1 md:py-1.5 text-[8px] md:text-[9px] font-black tracking-widest border ${
-                            isCompliant ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' : 'bg-red-600 border-red-600 text-white animate-pulse'
-                          }`}>
+                          <span className={`px-2 md:px-4 py-1 md:py-1.5 text-[8px] md:text-[9px] font-black tracking-widest border ${isCompliant ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' : 'bg-red-600 border-red-600 text-white animate-pulse'
+                            }`}>
                             {isCompliant ? '達成' : '未達'}
                           </span>
                         ) : (
@@ -498,11 +496,10 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
                     onClick={() => setCurrentPage(pageNum)}
                     aria-label={`ページ ${pageNum} に移動`}
                     aria-current={currentPage === pageNum ? "page" : undefined}
-                    className={`w-8 h-8 text-xs font-bold transition-all ${
-                      currentPage === pageNum
-                        ? 'bg-blue-500 text-white'
-                        : isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'
-                    }`}
+                    className={`w-8 h-8 text-xs font-bold transition-all ${currentPage === pageNum
+                      ? 'bg-blue-500 text-white'
+                      : isDark ? 'bg-white/10 hover:bg-white/10 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200'
+                      }`}
                   >
                     {pageNum}
                   </button>
@@ -549,182 +546,210 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees }) => {
               aria-labelledby="history-modal-title"
               aria-describedby="history-modal-description"
             >
-            <p id="history-modal-description" className="sr-only">
-              社員の有給休暇取得履歴を表示しています。ESCキーで閉じることができます。
-            </p>
-            {/* Header */}
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 id="history-modal-title" className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                  {getDisplayName(selectedEmployee.name)}
-                </h3>
-                <p className="text-indigo-500 text-sm font-medium mt-1">
-                  {selectedEmployee.client} / №{selectedEmployee.id}
-                </p>
+              <p id="history-modal-description" className="sr-only">
+                社員の有給休暇取得履歴を表示しています。ESCキーで閉じることができます。
+              </p>
+              {/* Header */}
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 id="history-modal-title" className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                    {getDisplayName(selectedEmployee.name)}
+                  </h3>
+                  <p className="text-indigo-500 text-sm font-medium mt-1">
+                    {selectedEmployee.client} / №{selectedEmployee.id}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowHistoryModal(false)}
+                  aria-label="閉じる"
+                  className={`text-2xl w-10 h-10 rounded-full transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}
+                >
+                  <span aria-hidden="true">✕</span>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowHistoryModal(false);
+                    setShowDateEditor(true);
+                  }}
+                  className={`text-sm font-bold px-4 py-2 rounded-lg transition-colors ${isDark
+                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                    : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                    }`}
+                  title="有給取得日を編集"
+                >
+                  🗓️ 日付編集
+                </button>
               </div>
-              <button
-                onClick={() => setShowHistoryModal(false)}
-                aria-label="閉じる"
-                className={`text-2xl w-10 h-10 rounded-full transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}
-              >
-                <span aria-hidden="true">✕</span>
-              </button>
-            </div>
 
-            {/* Resumen de Totales */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
-                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>付与 (現在)</p>
-                <p className="text-2xl font-black text-green-500">
-                  {selectedEmployee.currentGrantedTotal ?? selectedEmployee.grantedTotal}日
-                </p>
-              </div>
-              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
-                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>消化 (現在)</p>
-                <p className="text-2xl font-black text-pink-500">
-                  {selectedEmployee.currentUsedTotal ?? selectedEmployee.usedTotal}日
-                </p>
-              </div>
-              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
-                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>残高</p>
-                <p className="text-2xl font-black text-blue-500">
-                  {selectedEmployee.currentBalance ?? selectedEmployee.balance}日
-                </p>
-              </div>
-              <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
-                <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>時効</p>
-                <p className="text-2xl font-black text-orange-500">
-                  {selectedEmployee.historicalExpiredCount ?? selectedEmployee.expiredCount ?? 0}日
-                </p>
-              </div>
-            </div>
-
-            {/* Totales Históricos */}
-            {selectedEmployee.historicalGrantedTotal !== undefined && (
-              <div className={`mb-6 p-4 rounded-xl ${isDark ? 'bg-white/10 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
-                <p className={`text-xs font-bold mb-2 ${isDark ? 'text-white/60' : 'text-slate-600'}`}>📊 全期間合計</p>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <p className={`text-[9px] ${isDark ? 'text-white/80' : 'text-slate-400'}`}>付与合計</p>
-                    <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.historicalGrantedTotal}日</p>
-                  </div>
-                  <div>
-                    <p className={`text-[9px] ${isDark ? 'text-white/80' : 'text-slate-400'}`}>消化合計</p>
-                    <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.historicalUsedTotal}日</p>
-                  </div>
-                  <div>
-                    <p className={`text-[9px] ${isDark ? 'text-white/80' : 'text-slate-400'}`}>残高合計</p>
-                    <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.historicalBalance}日</p>
-                  </div>
+              {/* Resumen de Totales */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                  <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>付与 (現在)</p>
+                  <p className="text-2xl font-black text-green-500">
+                    {selectedEmployee.currentGrantedTotal ?? selectedEmployee.grantedTotal}日
+                  </p>
+                </div>
+                <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                  <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>消化 (現在)</p>
+                  <p className="text-2xl font-black text-pink-500">
+                    {selectedEmployee.currentUsedTotal ?? selectedEmployee.usedTotal}日
+                  </p>
+                </div>
+                <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                  <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>残高</p>
+                  <p className="text-2xl font-black text-blue-500">
+                    {selectedEmployee.currentBalance ?? selectedEmployee.balance}日
+                  </p>
+                </div>
+                <div className={`p-4 rounded-xl text-center ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                  <p className={`text-[10px] font-bold uppercase mb-1 ${isDark ? 'text-white/80' : 'text-slate-400'}`}>時効</p>
+                  <p className="text-2xl font-black text-orange-500">
+                    {selectedEmployee.historicalExpiredCount ?? selectedEmployee.expiredCount ?? 0}日
+                  </p>
                 </div>
               </div>
-            )}
 
-            {/* Historial por Períodos */}
-            <div>
-              <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                <span className="text-xl">📅</span> 有給取得履歴（期間別）
-              </h4>
-
-              {selectedEmployee.entryDate && (
-                <div className={`mb-4 px-3 py-2 rounded-lg text-xs ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
-                  <span className={isDark ? 'text-white/80' : 'text-slate-400'}>入社日: </span>
-                  <span className="text-indigo-500 font-bold">
-                    {new Date(selectedEmployee.entryDate).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </span>
+              {/* Totales Históricos */}
+              {selectedEmployee.historicalGrantedTotal !== undefined && (
+                <div className={`mb-6 p-4 rounded-xl ${isDark ? 'bg-white/10 border border-white/5' : 'bg-slate-50 border border-slate-100'}`}>
+                  <p className={`text-xs font-bold mb-2 ${isDark ? 'text-white/60' : 'text-slate-600'}`}>📊 全期間合計</p>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className={`text-[9px] ${isDark ? 'text-white/80' : 'text-slate-400'}`}>付与合計</p>
+                      <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.historicalGrantedTotal}日</p>
+                    </div>
+                    <div>
+                      <p className={`text-[9px] ${isDark ? 'text-white/80' : 'text-slate-400'}`}>消化合計</p>
+                      <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.historicalUsedTotal}日</p>
+                    </div>
+                    <div>
+                      <p className={`text-[9px] ${isDark ? 'text-white/80' : 'text-slate-400'}`}>残高合計</p>
+                      <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedEmployee.historicalBalance}日</p>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {selectedEmployee.periodHistory && selectedEmployee.periodHistory.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedEmployee.periodHistory.map((period, index) => (
-                    <div key={index} className="space-y-2">
-                      {/* Period Header */}
-                      <div className={`flex items-center justify-between py-2 px-3 rounded-lg ${
-                        period.isExpired
+              {/* Historial por Períodos */}
+              <div>
+                <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                  <span className="text-xl">📅</span> 有給取得履歴（期間別）
+                </h4>
+
+                {selectedEmployee.entryDate && (
+                  <div className={`mb-4 px-3 py-2 rounded-lg text-xs ${isDark ? 'bg-white/10' : 'bg-slate-50'}`}>
+                    <span className={isDark ? 'text-white/80' : 'text-slate-400'}>入社日: </span>
+                    <span className="text-indigo-500 font-bold">
+                      {new Date(selectedEmployee.entryDate).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </span>
+                  </div>
+                )}
+
+                {selectedEmployee.periodHistory && selectedEmployee.periodHistory.length > 0 ? (
+                  <div className="space-y-4">
+                    {selectedEmployee.periodHistory.map((period, index) => (
+                      <div key={index} className="space-y-2">
+                        {/* Period Header */}
+                        <div className={`flex items-center justify-between py-2 px-3 rounded-lg ${period.isExpired
                           ? 'bg-red-500/10 border border-red-500/20'
                           : period.isCurrentPeriod
                             ? 'bg-blue-500/10 border border-blue-500/20'
                             : 'bg-green-500/10 border border-green-500/20'
-                      }`}>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-sm font-black ${
-                              period.isExpired ? 'text-red-400'
+                          }`}>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-black ${period.isExpired ? 'text-red-400'
                                 : period.isCurrentPeriod ? 'text-blue-400'
-                                : 'text-green-400'
-                            }`}>
-                              {period.periodName}
-                            </span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'text-white/50 bg-white/10' : 'text-slate-500 bg-slate-100'}`}>
-                              付与{period.granted}日
-                            </span>
-                            <span className={`text-xs ${isDark ? 'text-white/80' : 'text-slate-400'}`}>({period.used}日消化)</span>
-                          </div>
-                          <div className={`text-[9px] flex gap-2 ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
-                            <span>付与: {new Date(period.grantDate).toLocaleDateString('ja-JP')}</span>
-                            <span>→ 時効: {new Date(period.expiryDate).toLocaleDateString('ja-JP')}</span>
-                          </div>
-                        </div>
-                        {period.isExpired ? (
-                          <span className="text-[10px] font-bold text-red-400 bg-red-500/20 px-2 py-0.5 rounded">時効済</span>
-                        ) : period.isCurrentPeriod ? (
-                          <span className="text-[10px] font-bold text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded">現在</span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded">有効</span>
-                        )}
-                      </div>
-
-                      {/* Dates Grid */}
-                      {period.yukyuDates && period.yukyuDates.length > 0 && (
-                        <div className="grid grid-cols-3 md:grid-cols-4 gap-1 pl-2">
-                          {period.yukyuDates.slice(0, 16).map((dateStr, i) => {
-                            // Parsear formato: "YYYY-MM-DD" o "YYYY-MM-DD:half"
-                            const isHalf = dateStr.endsWith(':half');
-                            const dateOnly = isHalf ? dateStr.replace(':half', '') : dateStr;
-                            return (
-                              <div
-                                key={`${dateStr}-${i}`}
-                                className={`text-[11px] font-mono py-1.5 px-2 rounded text-center ${
-                                  period.isExpired
-                                    ? 'bg-red-500/5 text-red-400/60 line-through'
-                                    : isDark ? 'bg-white/10 text-white/80' : 'bg-slate-50 text-slate-600'
-                                }`}
-                              >
-                                {new Date(dateOnly).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
-                                {isHalf && <span className="ml-0.5 text-[9px] opacity-60">(半)</span>}
-                              </div>
-                            );
-                          })}
-                          {period.yukyuDates.length > 16 && (
-                            <div className={`text-[10px] py-1.5 px-2 text-center ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
-                              +{period.yukyuDates.length - 16}件
+                                  : 'text-green-400'
+                                }`}>
+                                {period.periodName}
+                              </span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'text-white/50 bg-white/10' : 'text-slate-500 bg-slate-100'}`}>
+                                付与{period.granted}日
+                              </span>
+                              <span className={`text-xs ${isDark ? 'text-white/80' : 'text-slate-400'}`}>({period.used}日消化)</span>
                             </div>
+                            <div className={`text-[9px] flex gap-2 ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
+                              <span>付与: {new Date(period.grantDate).toLocaleDateString('ja-JP')}</span>
+                              <span>→ 時効: {new Date(period.expiryDate).toLocaleDateString('ja-JP')}</span>
+                            </div>
+                          </div>
+                          {period.isExpired ? (
+                            <span className="text-[10px] font-bold text-red-400 bg-red-500/20 px-2 py-0.5 rounded">時効済</span>
+                          ) : period.isCurrentPeriod ? (
+                            <span className="text-[10px] font-bold text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded">現在</span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded">有効</span>
                           )}
                         </div>
-                      )}
-                    </div>
-                  ))}
 
-                  {/* Regla de consumo */}
-                  <div className={`mt-4 p-3 rounded-xl ${isDark ? 'bg-indigo-500/5 border border-indigo-500/10' : 'bg-indigo-50 border border-indigo-100'}`}>
-                    <p className={`text-[10px] leading-relaxed ${isDark ? 'text-white/60' : 'text-slate-600'}`}>
-                      <span className="text-indigo-500 font-bold">労働基準法39条:</span> 入社6ヶ月で初回付与(10日)、以降1年ごとに付与。
-                      各付与から2年で時効。<span className="text-pink-500">新しい付与分から優先消化。</span>
-                    </p>
+                        {/* Dates Grid */}
+                        {period.yukyuDates && period.yukyuDates.length > 0 && (
+                          <div className="grid grid-cols-3 md:grid-cols-4 gap-1 pl-2">
+                            {period.yukyuDates.slice(0, 16).map((dateStr, i) => {
+                              // Parsear formato: "YYYY-MM-DD" o "YYYY-MM-DD:half"
+                              const isHalf = dateStr.endsWith(':half');
+                              const dateOnly = isHalf ? dateStr.replace(':half', '') : dateStr;
+                              return (
+                                <div
+                                  key={`${dateStr}-${i}`}
+                                  className={`text-[11px] font-mono py-1.5 px-2 rounded text-center ${period.isExpired
+                                    ? 'bg-red-500/5 text-red-400/60 line-through'
+                                    : isDark ? 'bg-white/10 text-white/80' : 'bg-slate-50 text-slate-600'
+                                    }`}
+                                >
+                                  {new Date(dateOnly).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
+                                  {isHalf && <span className="ml-0.5 text-[9px] opacity-60">(半)</span>}
+                                </div>
+                              );
+                            })}
+                            {period.yukyuDates.length > 16 && (
+                              <div className={`text-[10px] py-1.5 px-2 text-center ${isDark ? 'text-white/70' : 'text-slate-400'}`}>
+                                +{period.yukyuDates.length - 16}件
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Regla de consumo */}
+                    <div className={`mt-4 p-3 rounded-xl ${isDark ? 'bg-indigo-500/5 border border-indigo-500/10' : 'bg-indigo-50 border border-indigo-100'}`}>
+                      <p className={`text-[10px] leading-relaxed ${isDark ? 'text-white/60' : 'text-slate-600'}`}>
+                        <span className="text-indigo-500 font-bold">労働基準法39条:</span> 入社6ヶ月で初回付与(10日)、以降1年ごとに付与。
+                        各付与から2年で時効。<span className="text-pink-500">新しい付与分から優先消化。</span>
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="py-8 text-center space-y-2">
-                  <div className={`text-3xl ${isDark ? 'opacity-20' : 'opacity-30'}`}>📭</div>
-                  <p className={`text-sm ${isDark ? 'text-white/70' : 'text-slate-400'}`}>期間別データなし</p>
-                  <p className={`text-xs ${isDark ? 'text-white/70' : 'text-slate-300'}`}>有給休暇管理.xlsmを同期してください</p>
-                </div>
-              )}
+                ) : (
+                  <div className="py-8 text-center space-y-2">
+                    <div className={`text-3xl ${isDark ? 'opacity-20' : 'opacity-30'}`}>📭</div>
+                    <p className={`text-sm ${isDark ? 'text-white/70' : 'text-slate-400'}`}>期間別データなし</p>
+                    <p className={`text-xs ${isDark ? 'text-white/70' : 'text-slate-300'}`}>有給休暇管理.xlsmを同期してください</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          </div>
         </FocusTrap>
+      )}
+
+      {/* Yukyu Date Editor Modal */}
+      {showDateEditor && selectedEmployee && (
+        <YukyuDateEditor
+          employee={selectedEmployee}
+          isOpen={showDateEditor}
+          onClose={() => setShowDateEditor(false)}
+          onUpdate={() => {
+            // Refresh employee data from db
+            const data = db.loadData();
+            const updated = data.employees.find(e => e.id === selectedEmployee.id);
+            if (updated) {
+              setSelectedEmployee(updated);
+            }
+          }}
+        />
       )}
     </div>
   );

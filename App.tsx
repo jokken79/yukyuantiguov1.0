@@ -13,6 +13,7 @@ import AccountingReports from './components/AccountingReports';
 import ApplicationManagement from './components/ApplicationManagement';
 import { DashboardSkeleton, EmployeeListSkeleton, ApplicationSkeleton, TableSkeleton } from './components/Skeleton';
 import { db } from './services/db';
+import { api } from './services/api';
 import { AppData } from './types';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
@@ -38,8 +39,30 @@ const AppContent: React.FC = () => {
 
   // Initial load delay for nice skeleton animation
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 600);
-    return () => clearTimeout(timer);
+    const initApp = async () => {
+      try {
+        const isBackendUp = await api.checkHealth();
+        if (isBackendUp) {
+          toast.success('バックエンド接続完了 (Python API)', { id: 'backend-ok' });
+          try {
+            const employees = await api.getEmployees();
+            if (employees.length > 0) {
+              setAppData(prev => ({ ...prev, employees }));
+              console.log('Loaded data from Backend');
+            }
+          } catch (e) {
+            console.error('Failed to fetch employees from backend', e);
+          }
+        } else {
+          toast('オフラインモード (ローカル保存のみ)', { icon: '⚠️', id: 'backend-down' });
+        }
+      } catch (e) {
+        // Ignore errors, stay offline
+      } finally {
+        setTimeout(() => setIsLoading(false), 600);
+      }
+    };
+    initApp();
   }, []);
 
   // Show brief loading when switching tabs

@@ -28,11 +28,12 @@ if "%portInput%"=="" set portInput=3000
 
 :: 3. Start Application
 echo.
-echo [3/3] Starting System on port %portInput%...
-echo - URL: http://localhost:%portInput%
+echo [3/3] Starting System...
+echo - Frontend: http://localhost:%portInput%
+echo - IMPORTANT: Remember to run 'scripts/start_backend.bat' in a separate window!
 echo.
 
-:: Launch Vite
+:: Launch Vite with the specified port
 call npx vite --port %portInput% --host
 
 :: If Vite stops, pause

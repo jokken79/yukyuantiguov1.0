@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import { db } from '../services/db';
+import { api } from '../services/api';
 import { Employee, PeriodHistory } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { mergeExcelData, validateMerge, getMergeSummary } from '../services/mergeService';
@@ -801,6 +802,15 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         currentAppData.employees = result.employees;
         db.saveData(currentAppData);
 
+        // Sync with Backend
+        try {
+          await api.syncEmployees(result.employees);
+          console.log('Backend synced successfully');
+        } catch (backendErr) {
+          console.error('Backend sync failed:', backendErr);
+          toast.error('バックエンド同期失敗 (ローカル保存のみ)', { duration: 3000 });
+        }
+
         setProgress(setProgressDaicho, 'complete');
         await new Promise(r => setTimeout(r, 500));
 
@@ -866,6 +876,15 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
 
         currentAppData.employees = result.employees;
         db.saveData(currentAppData);
+
+        // Sync with Backend
+        try {
+          await api.syncEmployees(result.employees);
+          console.log('Backend synced successfully');
+        } catch (backendErr) {
+          console.error('Backend sync failed:', backendErr);
+          toast.error('バックエンド同期失敗 (ローカル保存のみ)', { duration: 3000 });
+        }
 
         setProgress(setProgressYukyu, 'complete');
         await new Promise(r => setTimeout(r, 500));

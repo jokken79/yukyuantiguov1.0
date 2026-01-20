@@ -2,59 +2,58 @@
 setlocal enabledelayedexpansion
 cd /d "%~dp0\.."
 title Yukyu Pro - SUPER LAUNCHER
+chcp 65001 >nul 2>&1
 
 REM ================================================================================
-REM   YUKYU PRO - SUPER LAUNCHER v2.0
-REM   Configuracion completa: Puertos, Dependencias, Limpieza
+REM   YUKYU PRO - SUPER LAUNCHER v3.0
+REM   Frontend + Backend con sincronizacion automatica de puertos y CORS
 REM ================================================================================
 
 REM === DEFAULTS ===
 set "BACKEND_PORT=8000"
 set "FRONTEND_PORT=3000"
-set "AskParams=N"
 set "CLEAN=N"
 
 echo.
 echo ================================================================================
-echo   YUKYU PRO - SUPER LAUNCHER v2.0
-echo   Sistema de Gestion de Vacaciones (有給休暇管理)
+echo   YUKYU PRO - SUPER LAUNCHER v3.0
+echo   Frontend + Backend con CORS sincronizado
 echo ================================================================================
 echo.
 
 REM --------------------------------------------------------------------------------
-REM FASE 0: CONFIGURACION
+REM FASE 1: CONFIGURACION DE PUERTOS
 REM --------------------------------------------------------------------------------
-echo [FASE 0] CONFIGURACION
+echo [FASE 1] CONFIGURACION DE PUERTOS
 echo.
 
-set /p "AskParams=Configurar parametros personalizados? (S/N) [Default: N]: "
-if /i "!AskParams!"=="S" goto CONFIGURE_PARAMS
-goto SKIP_CONFIG
-
-:CONFIGURE_PARAMS
-echo.
-echo --- PUERTOS ---
 set /p "BACKEND_PORT=Puerto Backend [Default 8000]: "
 if "!BACKEND_PORT!"=="" set "BACKEND_PORT=8000"
 
 set /p "FRONTEND_PORT=Puerto Frontend [Default 3000]: "
 if "!FRONTEND_PORT!"=="" set "FRONTEND_PORT=3000"
 
-:SKIP_CONFIG
+REM Construir CORS origins automaticamente
+set "CORS_ORIGINS=http://localhost:!FRONTEND_PORT!,http://127.0.0.1:!FRONTEND_PORT!"
+
 echo.
+echo   =============================================
 echo   CONFIGURACION FINAL:
-echo   ----------------------
-echo   Backend Port:   !BACKEND_PORT!
-echo   Frontend Port:  !FRONTEND_PORT!
+echo   =============================================
+echo   Backend Port:    !BACKEND_PORT!
+echo   Frontend Port:   !FRONTEND_PORT!
+echo   CORS Origins:    !CORS_ORIGINS!
+echo   API Proxy:       /api -^> http://localhost:!BACKEND_PORT!
+echo   =============================================
 echo.
 
 REM --------------------------------------------------------------------------------
-REM FASE 1: LIMPIEZA (OPCIONAL)
+REM FASE 2: LIMPIEZA (OPCIONAL)
 REM --------------------------------------------------------------------------------
-echo [FASE 1] LIMPIEZA
+echo [FASE 2] LIMPIEZA
 echo.
 
-set /p "CLEAN=Limpieza profunda (borrar node_modules y venv)? (S/N) [Default: N]: "
+set /p "CLEAN=Limpieza profunda? (S/N) [Default: N]: "
 if /i "!CLEAN!"=="S" goto DO_CLEANUP
 goto SKIP_CLEANUP
 
@@ -64,15 +63,8 @@ echo   Eliminando node_modules...
 if exist "node_modules" (
     rmdir /s /q "node_modules" 2>nul
     echo   [OK] node_modules eliminado.
-) else (
-    echo   [SKIP] node_modules no existe.
 )
-echo   Eliminando package-lock.json...
-if exist "package-lock.json" (
-    del /f /q "package-lock.json" 2>nul
-    echo   [OK] package-lock.json eliminado.
-)
-echo   Eliminando venv del backend...
+echo   Eliminando backend\venv...
 if exist "backend\venv" (
     rmdir /s /q "backend\venv" 2>nul
     echo   [OK] venv eliminado.
@@ -89,62 +81,62 @@ echo.
 goto DEPENDENCY_CHECK
 
 REM --------------------------------------------------------------------------------
-REM FASE 2: DEPENDENCIAS
+REM FASE 3: DEPENDENCIAS
 REM --------------------------------------------------------------------------------
 :DEPENDENCY_CHECK
-echo [FASE 2] VERIFICACION DE DEPENDENCIAS
+echo [FASE 3] VERIFICACION DE DEPENDENCIAS
 echo.
 
-REM --- Python venv ---
-echo   Verificando entorno virtual Python...
+REM --- Backend venv ---
+echo   [Backend] Verificando venv...
 if not exist "backend\venv" (
-    echo   Creando venv en backend...
+    echo   [Backend] Creando venv...
     cd backend
     python -m venv venv
-    if errorlevel 1 goto ERROR_PYTHON
+    if errorlevel 1 (
+        cd ..
+        goto ERROR_PYTHON
+    )
     cd ..
-    echo   [OK] venv creado.
+    echo   [Backend] [OK] venv creado.
 ) else (
-    echo   [OK] venv existe.
+    echo   [Backend] [OK] venv existe.
 )
 
 REM --- Backend requirements ---
-echo   Instalando dependencias backend...
-call backend\venv\Scripts\activate.bat
-pip install -q -r backend\requirements.txt
+echo   [Backend] Instalando dependencias...
+call "backend\venv\Scripts\activate.bat"
+pip install -q -r backend\requirements.txt 2>nul
 if errorlevel 1 goto ERROR_PIP
 call deactivate 2>nul
-echo   [OK] Backend listo.
+echo   [Backend] [OK] Dependencias instaladas.
 echo.
 
 REM --- Frontend node_modules ---
-echo   Verificando dependencias frontend...
+echo   [Frontend] Verificando node_modules...
 if not exist "node_modules" (
-    echo   Instalando node_modules...
-    call npm install --silent
+    echo   [Frontend] Instalando node_modules...
+    call npm install
     if errorlevel 1 goto ERROR_NPM
-    echo   [OK] node_modules instalado.
+    echo   [Frontend] [OK] node_modules instalado.
 ) else (
-    echo   [OK] node_modules existe.
+    echo   [Frontend] [OK] node_modules existe.
 )
-echo   [OK] Frontend listo.
 echo.
 
 REM --------------------------------------------------------------------------------
-REM FASE 3: MATAR PROCESOS ZOMBIES
+REM FASE 4: LIBERAR PUERTOS
 REM --------------------------------------------------------------------------------
-echo [FASE 3] LIBERANDO PUERTOS
+echo [FASE 4] LIBERANDO PUERTOS
 echo.
 
-REM --- Matar proceso en puerto backend ---
-echo   Liberando puerto !BACKEND_PORT!...
+echo   Liberando puerto !BACKEND_PORT! (Backend)...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":!BACKEND_PORT!" ^| findstr "LISTENING"') do (
     echo   Matando PID %%a...
     taskkill /F /PID %%a >nul 2>&1
 )
 
-REM --- Matar proceso en puerto frontend ---
-echo   Liberando puerto !FRONTEND_PORT!...
+echo   Liberando puerto !FRONTEND_PORT! (Frontend)...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":!FRONTEND_PORT!" ^| findstr "LISTENING"') do (
     echo   Matando PID %%a...
     taskkill /F /PID %%a >nul 2>&1
@@ -154,91 +146,99 @@ echo   [OK] Puertos liberados.
 echo.
 
 REM --------------------------------------------------------------------------------
-REM FASE 4: CONFIGURAR ARCHIVOS .ENV
+REM FASE 5: ACTUALIZAR CONFIGURACION (vite.config.ts proxy)
 REM --------------------------------------------------------------------------------
-echo [FASE 4] CONFIGURANDO ARCHIVOS DE ENTORNO
+echo [FASE 5] SINCRONIZANDO CONFIGURACION
 echo.
 
-REM --- Frontend .env.local (solo si no existe o actualizar API URL) ---
-echo   Verificando .env.local...
-if not exist ".env.local" (
-    echo   Creando .env.local vacio (agrega GEMINI_API_KEY manualmente si lo necesitas)...
-    (
-    echo # Yukyu Pro Environment Variables
-    echo # Agrega tu API key de Gemini aqui:
-    echo # GEMINI_API_KEY=your_api_key_here
-    ) > .env.local
-    echo   [OK] .env.local creado.
-) else (
-    echo   [OK] .env.local ya existe.
-)
+REM Crear/actualizar .env.local con la API URL
+echo   Actualizando .env.local...
+(
+echo # Yukyu Pro - Auto-generated by SUPER LAUNCHER
+echo # Backend API URL for proxy
+echo VITE_API_URL=http://localhost:!BACKEND_PORT!
+echo # Gemini API Key (opcional - agrega manualmente)
+echo # GEMINI_API_KEY=your_key_here
+) > .env.local
+echo   [OK] .env.local actualizado.
 
-REM --- Verificar vite.config.ts tiene el proxy configurado ---
-echo   [INFO] El proxy API esta configurado en vite.config.ts
+echo   [INFO] El proxy /api esta configurado en vite.config.ts
+echo   [INFO] CORS_ORIGINS se pasara como variable de entorno al backend
 echo.
 
 REM --------------------------------------------------------------------------------
-REM FASE 5: LANZAR SERVICIOS
+REM FASE 6: INICIAR SERVICIOS
 REM --------------------------------------------------------------------------------
-echo [FASE 5] INICIANDO SERVICIOS
+echo [FASE 6] INICIANDO SERVICIOS
 echo.
 
-echo   Iniciando Backend API (Puerto !BACKEND_PORT!)...
-start "Yukyu Pro - BACKEND" cmd /k "cd /d %~dp0\..\backend && call venv\Scripts\activate.bat && python main.py"
+REM --- Iniciar Backend ---
+echo   Iniciando Backend en puerto !BACKEND_PORT!...
+start "Yukyu Pro - BACKEND [!BACKEND_PORT!]" cmd /k "cd /d %~dp0\..\backend && call venv\Scripts\activate.bat && set CORS_ORIGINS=!CORS_ORIGINS! && set PORT=!BACKEND_PORT! && python main.py"
 
-echo   Esperando que el backend inicie (5 segundos)...
+echo   Esperando backend (3 segundos)...
+timeout /t 3 /nobreak >nul
+
+REM --- Iniciar Frontend ---
+echo   Iniciando Frontend en puerto !FRONTEND_PORT!...
+start "Yukyu Pro - FRONTEND [!FRONTEND_PORT!]" cmd /k "cd /d %~dp0\.. && npm run dev -- --port !FRONTEND_PORT!"
+
+echo   Esperando frontend (5 segundos)...
 timeout /t 5 /nobreak >nul
 
-echo   Iniciando Frontend (Puerto !FRONTEND_PORT!)...
-start "Yukyu Pro - FRONTEND" cmd /k "cd /d %~dp0\.. && npm run dev -- --port !FRONTEND_PORT!"
-
-echo   Esperando que el frontend inicie (5 segundos)...
-timeout /t 5 /nobreak >nul
-
+REM --- Abrir navegador ---
 echo   Abriendo navegador...
 start http://localhost:!FRONTEND_PORT!
 
 echo.
 echo ================================================================================
-echo   SISTEMA INICIADO CORRECTAMENTE
+echo   YUKYU PRO - SISTEMA INICIADO
 echo ================================================================================
 echo.
-echo   BACKEND:   http://localhost:!BACKEND_PORT!/api/health
-echo   SWAGGER:   http://localhost:!BACKEND_PORT!/docs
 echo   FRONTEND:  http://localhost:!FRONTEND_PORT!
+echo   BACKEND:   http://localhost:!BACKEND_PORT!
+echo   SWAGGER:   http://localhost:!BACKEND_PORT!/docs
+echo   HEALTH:    http://localhost:!BACKEND_PORT!/api/health
 echo.
-echo   NOTA: Los datos se guardan en localStorage del navegador.
-echo         El backend es opcional (para persistencia en SQLite).
+echo   CORS configurado para: !CORS_ORIGINS!
 echo.
-echo   Para detener los servicios, cierra las ventanas de consola.
+echo   Los datos principales se guardan en localStorage.
+echo   El backend (SQLite) es para persistencia adicional.
 echo.
-echo   Presiona cualquier tecla para cerrar esta ventana...
-pause >nul
+echo   Para detener, cierra las ventanas de consola.
+echo ================================================================================
+echo.
+pause
 goto :EOF
 
 REM === MANEJADORES DE ERROR ===
 
 :ERROR_PYTHON
 echo.
-echo [ERROR FATAL] No se pudo crear el entorno virtual Python.
-echo Asegurate de que Python este instalado y en el PATH.
-echo.
-echo Descarga Python desde: https://www.python.org/downloads/
+echo ================================================================================
+echo   [ERROR] No se pudo crear el entorno virtual Python.
+echo   Asegurate de que Python este instalado y en el PATH.
+echo   Descarga: https://www.python.org/downloads/
+echo ================================================================================
 pause
 exit /b 1
 
 :ERROR_PIP
+call deactivate 2>nul
 echo.
-echo [ERROR FATAL] pip install fallo.
-echo Verifica tu conexion a internet o el archivo requirements.txt.
+echo ================================================================================
+echo   [ERROR] pip install fallo.
+echo   Verifica tu conexion a internet o backend\requirements.txt
+echo ================================================================================
 pause
 exit /b 1
 
 :ERROR_NPM
 echo.
-echo [ERROR FATAL] npm install fallo.
-echo Verifica que Node.js este instalado.
-echo.
-echo Descarga Node.js desde: https://nodejs.org/
+echo ================================================================================
+echo   [ERROR] npm install fallo.
+echo   Verifica que Node.js este instalado.
+echo   Descarga: https://nodejs.org/
+echo ================================================================================
 pause
 exit /b 1

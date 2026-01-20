@@ -2,12 +2,20 @@
 Yukyu Pro Backend - Main Entry Point
 A FastAPI application for managing employee paid leave (Yukyu) compliance in Japan.
 """
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from src.config import init_db
 from src.routes import employees_router, records_router, ai_router
+
+# --- Environment Variables ---
+PORT = int(os.getenv("PORT", "8000"))
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+
+# Parse CORS origins from comma-separated string
+cors_origins_list = [origin.strip() for origin in CORS_ORIGINS.split(",") if origin.strip()]
 
 # --- App Init ---
 app = FastAPI(
@@ -16,10 +24,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS Middleware
+# CORS Middleware - uses origins from env or defaults
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,4 +52,6 @@ async def health_check():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    print(f"Starting Yukyu Pro Backend on port {PORT}")
+    print(f"CORS Origins: {cors_origins_list}")
+    uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=True)

@@ -6,14 +6,13 @@ from typing import Dict, Any
 import json
 import os
 
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 router = APIRouter(prefix="/api", tags=["ai"])
 
@@ -21,13 +20,13 @@ router = APIRouter(prefix="/api", tags=["ai"])
 @router.post("/analyze")
 async def analyze_compliance(data: Dict[str, Any]):
     """Analyze employee compliance using Gemini AI"""
-    if not GEMINI_API_KEY:
+    if not client:
         return [{
             "title": "AI分析未設定",
             "description": "GEMINI_API_KEYがバックエンドで設定されていません。",
             "type": "info"
         }]
-    
+
     employees = data.get("employees", [])
     if not employees:
         return []
@@ -44,15 +43,17 @@ async def analyze_compliance(data: Dict[str, Any]):
     従業員総数: {len(employees)}
     法的リスク対象: {len(risk_employees)}名
     {chr(10).join([f"{e.get('name')}: {e.get('usedTotal')}日" for e in risk_employees[:10]])}
-    
+
     3つのインサイト（法的コンプライアンス警告、具体的アクションプラン、ポジティブな予測）を日本語のJSON形式で返してください。
     """
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(
-            prompt,
-            generation_config={"response_mime_type": "application/json"}
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+            config=genai.types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
         )
         return json.loads(response.text)
     except Exception as e:

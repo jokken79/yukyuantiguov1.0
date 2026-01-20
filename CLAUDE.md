@@ -29,6 +29,43 @@ python main.py       # Start FastAPI server at http://localhost:8000
 
 No test or lint commands are configured.
 
+## Scripts de Inicio (Windows)
+
+La carpeta `scripts/` contiene archivos .bat para iniciar la aplicación:
+
+| Script | Descripción |
+|--------|-------------|
+| `start_all.bat` | **SUPER LAUNCHER v3.0** - Inicia frontend + backend con configuración completa |
+| `start_app.bat` | Solo frontend con opción de puerto personalizado |
+| `start_frontend.bat` | Solo frontend en puerto 3000 (default) |
+| `start_backend.bat` | Solo backend FastAPI en puerto 8000 |
+
+### SUPER LAUNCHER (`start_all.bat`)
+
+El script más completo con las siguientes características:
+- **Fase 1**: Configuración de puertos (Backend default: 8000, Frontend default: 3000)
+- **Fase 2**: Limpieza opcional (node_modules, venv, __pycache__)
+- **Fase 3**: Verificación e instalación de dependencias (venv + node_modules)
+- **Fase 4**: Liberación automática de puertos ocupados
+- **Fase 5**: Sincronización de configuración (.env.local con VITE_API_URL)
+- **Fase 6**: Inicio de servicios en ventanas separadas + apertura de navegador
+
+### Uso recomendado
+
+```bash
+# Opción 1: SUPER LAUNCHER (recomendado)
+scripts\start_all.bat
+
+# Opción 2: Manual con puerto específico
+npm run dev -- --port 3777
+
+# Opción 3: Liberar puertos ocupados (PowerShell)
+Get-NetTCPConnection -LocalPort 3777 | Select-Object OwningProcess
+Stop-Process -Id <PID> -Force
+```
+
+**Nota importante**: `start_frontend.bat` navega a la raíz del proyecto (no a `/frontend`) ya que el código frontend activo está en la raíz.
+
 ## Environment Setup
 
 Create `.env.local` in the project root:

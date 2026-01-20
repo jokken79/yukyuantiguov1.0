@@ -51,16 +51,32 @@ The application features a premium, dark-themed UI ("Premium Analog" aesthetic) 
 
 ### Running the Application
 
-**Option 1: Using the automated script (Windows)**
-Run the included batch file in the `scripts` folder:
+**Option 1: SUPER LAUNCHER (Recommended for Windows)**
 ```bash
-scripts/start_app.bat
+scripts\start_all.bat
 ```
-Follow the on-screen prompts to select a port (default: 3000).
+Este es el script más completo - inicia frontend + backend con:
+- Configuración de puertos personalizados (default: 3000 frontend, 8000 backend)
+- Sincronización automática de CORS
+- Liberación de puertos ocupados
+- Apertura automática del navegador
 
-**Option 2: Manual Start**
+**Option 2: Individual Scripts (Windows)**
+| Script | Descripción |
+|--------|-------------|
+| `scripts\start_all.bat` | **SUPER LAUNCHER v3.0** - Frontend + Backend con CORS sincronizado |
+| `scripts\start_app.bat` | Solo frontend con puerto personalizable |
+| `scripts\start_frontend.bat` | Solo frontend en puerto 3000 |
+| `scripts\start_backend.bat` | Solo backend FastAPI en puerto 8000 |
+
+**Option 3: Manual Start**
 ```bash
-npm run dev
+# Frontend only
+npm run dev -- --port 3777
+
+# Backend only (in separate terminal)
+cd backend
+python main.py
 ```
 
 ## 📂 Project Structure

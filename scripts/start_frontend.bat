@@ -1,8 +1,8 @@
 @echo off
 setlocal
 
-:: Navigate to frontend directory
-cd /d "%~dp0..\frontend"
+:: Navigate to project root (frontend code is in root, not /frontend)
+cd /d "%~dp0.."
 
 echo ===================================================
 echo      Yukyu Pro Frontend - Start Script

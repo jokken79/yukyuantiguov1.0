@@ -15,10 +15,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
+# Frontend
 npm install          # Install dependencies
 npm run dev          # Start dev server at http://localhost:3000
 npm run build        # Production build to dist/
 npm run preview      # Preview production build
+
+# Backend (optional - in /backend folder)
+cd backend
+pip install -r requirements.txt
+python main.py       # Start FastAPI server at http://localhost:8000
 ```
 
 No test or lint commands are configured.
@@ -32,10 +38,32 @@ GEMINI_API_KEY=your_api_key_here
 
 **Important**: The Gemini API key is optional. The app handles missing keys gracefully by showing an info message instead of crashing. The key is exposed via Vite's `define` config as both `process.env.API_KEY` and `process.env.GEMINI_API_KEY`.
 
+## Project Structure
+
+```
+/ (root)                    # Main frontend code
+├── components/             # React components
+├── services/               # Business logic & data services
+├── contexts/               # React contexts (ThemeContext)
+├── hooks/                  # Custom hooks (useKeyboardShortcuts)
+├── types.ts                # TypeScript definitions
+├── App.tsx                 # Main app component
+└── index.tsx               # Entry point
+
+/backend/                   # Optional FastAPI backend (SQLite)
+├── main.py                 # FastAPI entry point
+├── src/routes/             # API routes (employees, records, ai)
+└── yukyu.db                # SQLite database
+
+/frontend/src/              # Duplicate/alternate frontend structure (mostly mirrors root)
+```
+
+**Note**: There's code duplication between root and `/frontend/src/`. The root folder is the actively used frontend codebase.
+
 ## Architecture
 
 ### Data Flow
-The app is **fully client-side** with localStorage persistence:
+The app is **primarily client-side** with localStorage persistence:
 ```
 localStorage ("yukyu_pro_storage")
     → db.loadData() → AppData {employees[], records[], config}
@@ -43,7 +71,7 @@ localStorage ("yukyu_pro_storage")
     → UI rendering
 ```
 
-**Critical**: No backend API exists. All data is stored in browser localStorage. External API: Google Gemini AI for compliance analysis only.
+**Primary storage**: Browser localStorage. Optional backend at `/backend/` provides FastAPI + SQLite persistence (proxied via `/api` in vite.config.ts). External API: Google Gemini AI for compliance analysis.
 
 ### State Management Pattern
 Components follow a **shared state refresh pattern**:
@@ -67,16 +95,37 @@ Six main modules accessed via Sidebar:
   - `approveRecord()`/`rejectRecord()` - Single approval actions, auto-updates employee balances
   - `approveMultiple()`/`rejectMultiple()` - Bulk approval operations
   - Auto-migration: Old records without status get `status: 'approved'` on load
+  - Auto data repair: Calls `validateAllEmployees()` and `smartRepair()` on load
+- **balanceCalculator.ts** - Single source of truth for leave balance calculations
+  - `getEmployeeBalance()` - Calculates granted/used/remaining/expired days
+  - `getEmployeePeriods()` - Returns all leave periods with expiry dates
+  - `isLegalRisk()` - Checks if employee needs 5+ days (労働基準法39条)
+  - Handles half-day leave (`:half` suffix in yukyuDates)
 - **geminiService.ts** - Gemini AI integration for compliance analysis
   - Lazy initialization pattern (doesn't crash if API key missing)
-  - Uses `gemini-3-flash-preview` model with JSON schema for structured insights
+  - Uses `gemini-2.0-flash` model with JSON schema for structured insights
+- **expirationService.ts** - Period expiration tracking (2-year 時効)
+  - `recalculateAllExpirations()` - Auto-runs on data load
+- **mergeService.ts** - Excel import merge logic
+  - `mergeExcelData()` - Combines DAICHO + YUKYU Excel data with existing employees
+- **validationService.ts** - Pre-approval validation
+  - `canApproveLeave()` - Validates balance, duplicates, retired status before approval
+- **dataIntegrityValidator.ts** - Data health checks
+  - `validateAllEmployees()` - Returns critical/error/warning counts
+- **dataRepairService.ts** - Auto-repair corrupted data
+  - `smartRepair()` - Fixes common data issues automatically
+- **migrationService.ts** - Schema version migrations
 - **exportService.ts** - CSV and PDF export utilities
 - **nameConverter.ts** - Romaji to Katakana conversion (supports Vietnamese, Portuguese names)
+- **api.ts** - Optional backend API client (for FastAPI backend)
 
 ### Data Models (`types.ts`)
-- **Employee** - Core employee record with leave balance data
-- **LeaveRecord** - Individual leave request with approval status
+- **Employee** - Core employee record with leave balance data, periodHistory[], and current/historical balance fields
+- **LeaveRecord** - Individual leave request with approval status and duration (full/half)
 - **AppData** - Root state object containing employees[], records[], config{}
+- **PeriodHistory** - Detailed history of each yukyu grant period (see section below)
+- **BalanceInfo** - Calculated balance info from balanceCalculator
+- **ValidationResult** - Result from canApproveLeave() validation
 - **AIInsight** - Gemini-generated compliance warnings
 
 ## Excel Import (ExcelSync)

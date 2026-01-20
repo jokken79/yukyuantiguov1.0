@@ -9,9 +9,18 @@ import { useTheme } from '../contexts/ThemeContext';
 import { mergeExcelData, validateMerge, getMergeSummary } from '../services/mergeService';
 import { getEmployeeBalance } from '../services/balanceCalculator';
 import { convertNameToKatakana } from '../services/nameConverter';
+import { validationContext, logValidationResult } from '../services/parseValidation';
 
 interface ExcelSyncProps {
   onSyncComplete: () => void;
+}
+
+// Interfaz para conflictos de empleados
+interface EmployeeConflict {
+  employeeId: string;
+  employeeName: string;
+  conflicts: string[];
+  warnings: string[];
 }
 
 // Configuración de sheets por tipo de archivo
@@ -39,7 +48,7 @@ const loadSyncStatus = (): SyncStatus => {
   try {
     const saved = localStorage.getItem(SYNC_STATUS_KEY);
     if (saved) return JSON.parse(saved);
-  } catch {}
+  } catch { }
   return {
     daicho: { synced: false, count: 0, activeCount: 0, resignedCount: 0, lastSync: null },
     yukyu: { synced: false, count: 0, activeCount: 0, resignedCount: 0, lastSync: null },
@@ -250,7 +259,7 @@ const buildPeriodHistory = (
 
         if (!isNaN(yukyuStart.getTime()) && !isNaN(entry.getTime())) {
           const monthsDiff = (yukyuStart.getFullYear() - entry.getFullYear()) * 12
-                           + (yukyuStart.getMonth() - entry.getMonth());
+            + (yukyuStart.getMonth() - entry.getMonth());
           // Redondear al valor válido más cercano
           elapsedMonths = VALID_ELAPSED_MONTHS.reduce((prev, curr) =>
             Math.abs(curr - monthsDiff) < Math.abs(prev - monthsDiff) ? curr : prev
@@ -262,16 +271,24 @@ const buildPeriodHistory = (
 
     // Si sigue siendo 0, saltar esta fila (no tiene datos válidos de período)
     if (elapsedMonths === 0) {
-      console.warn(`⚠️ ${employeeId}: Saltando fila ${index} sin 経過月 válido`);
+      validationContext.skipRow(employeeId, '', `Row ${index}: Missing valid 経過月`, index);
       return;
     }
 
     const yukyuStartDateRaw = findValue(row, ['有給発生', '有給発生日']);
-    const granted = Number(findValue(row, ['付与数', '付与合計', '付与日数', '当期付与'])) || 0;
-    const used = Number(findValue(row, ['消化日数', '消化合計', '使用日数'])) || 0;
-    const balance = Number(findValue(row, ['期末残高', '残日数', '有給残', '残高'])) || 0;
-    const expired = Number(findValue(row, ['時効数', '時効', '消滅日数', '時効日数'])) || 0;
-    const carryOver = Number(findValue(row, ['繰越', '繰越日数'])) || undefined;
+
+    // ⭐ Use validation context for numeric parsing with error tracking
+    const grantedRaw = findValue(row, ['付与数', '付与合計', '付与日数', '当期付与']);
+    const usedRaw = findValue(row, ['消化日数', '消化合計', '使用日数']);
+    const balanceRaw = findValue(row, ['期末残高', '残日数', '有給残', '残高']);
+    const expiredRaw = findValue(row, ['時効数', '時効', '消滅日数', '時効日数']);
+    const carryOverRaw = findValue(row, ['繰越', '繰越日数']);
+
+    const granted = validationContext.parseNumber(grantedRaw, '付与数', employeeId, '', 0, index);
+    const used = validationContext.parseNumber(usedRaw, '消化日数', employeeId, '', 0, index);
+    const balance = validationContext.parseNumber(balanceRaw, '期末残高', employeeId, '', 0, index);
+    const expired = validationContext.parseNumber(expiredRaw, '時効数', employeeId, '', 0, index);
+    const carryOver = carryOverRaw ? validationContext.parseNumber(carryOverRaw, '繰越', employeeId, '', 0, index) : undefined;
 
     // Calcular fechas
     const yukyuStartDate = yukyuStartDateRaw ? excelDateToISO(yukyuStartDateRaw) : undefined;
@@ -287,7 +304,7 @@ const buildPeriodHistory = (
 
     // Determinar período actual
     const monthsFromEntry = (now.getFullYear() - entry.getFullYear()) * 12 +
-                            (now.getMonth() - entry.getMonth());
+      (now.getMonth() - entry.getMonth());
     const isCurrentPeriod = Math.abs(elapsedMonths - monthsFromEntry) <= 6;
 
     // ⭐ Usar la función calculatePeriodName() corregida
@@ -341,9 +358,10 @@ const processYukyu = (
   workbook: XLSX.WorkBook,
   existingEmployees: Employee[],
   includeResigned: boolean
-): { employees: Employee[]; count: number; activeCount: number; resignedCount: number } => {
+): { employees: Employee[]; count: number; activeCount: number; resignedCount: number; employeeConflicts: EmployeeConflict[] } => {
   let activeCount = 0;
   let resignedCount = 0;
+  const employeeConflicts: EmployeeConflict[] = [];
 
   const employeeYukyuMap: Map<string, {
     allRows: any[];
@@ -499,10 +517,15 @@ const processYukyu = (
         console.warn(`⚠️ Warnings para ${emp.name}:`, mergeResult.warnings);
       }
 
-      // Mostrar conflictos si existen
-      if (mergeResult.conflicts.length > 0) {
+      // Recolectar conflictos para mostrar en modal
+      if (mergeResult.conflicts.length > 0 || mergeResult.warnings.length > 0) {
         console.warn(`⚠️ Conflictos para ${emp.name}:`, mergeResult.conflicts);
-        // TODO: Agregar modal UI para mostrar conflictos al usuario
+        employeeConflicts.push({
+          employeeId: id,
+          employeeName: emp.name,
+          conflicts: mergeResult.conflicts,
+          warnings: mergeResult.warnings
+        });
       }
 
       // ⚠️ DESHABILITADO: Confiamos en los valores del Excel
@@ -576,7 +599,7 @@ const processYukyu = (
   });
 
   const count = includeResigned ? activeCount + resignedCount : activeCount;
-  return { employees: existingEmployees, count, activeCount, resignedCount };
+  return { employees: existingEmployees, count, activeCount, resignedCount, employeeConflicts };
 };
 
 // Progress state interface
@@ -593,6 +616,175 @@ const PROGRESS_STAGES = {
   processing: { percent: 70, message: 'データ処理中...' },
   saving: { percent: 90, message: '保存中...' },
   complete: { percent: 100, message: '完了!' }
+};
+
+// Componente Modal de Conflictos
+interface ConflictModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  conflicts: EmployeeConflict[];
+  isDark: boolean;
+}
+
+const ConflictModal: React.FC<ConflictModalProps> = ({ isOpen, onClose, conflicts, isDark }) => {
+  // Manejar ESC para cerrar
+  React.useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
+      return () => document.removeEventListener('keydown', handleEsc);
+    }
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const totalConflicts = conflicts.reduce((sum, c) => sum + c.conflicts.length, 0);
+  const totalWarnings = conflicts.reduce((sum, c) => sum + c.warnings.length, 0);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className={`max-w-2xl w-full max-h-[80vh] overflow-hidden rounded-2xl ${isDark ? 'bg-[#0a0a0a] border border-white/20' : 'bg-white border border-slate-200 shadow-xl'}`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="conflict-modal-title"
+        aria-describedby="conflict-modal-description"
+      >
+        {/* Header */}
+        <div className={`px-6 py-4 border-b ${isDark ? 'border-white/10 bg-amber-500/10' : 'border-slate-200 bg-amber-50'}`}>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl" aria-hidden="true">⚠️</span>
+              <div>
+                <h3 id="conflict-modal-title" className={`text-lg font-black ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>
+                  データ同期の警告
+                </h3>
+                <p id="conflict-modal-description" className={`text-xs ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
+                  {conflicts.length}名の社員でデータの不一致が検出されました
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="閉じる"
+              className={`text-xl w-8 h-8 rounded-lg transition-colors flex items-center justify-center ${isDark ? 'hover:bg-white/10 text-white/60' : 'hover:bg-slate-100 text-slate-400'}`}
+            >
+              <span aria-hidden="true">✕</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className={`px-6 py-3 flex gap-4 text-sm border-b ${isDark ? 'border-white/5 bg-white/5' : 'border-slate-100 bg-slate-50'}`}>
+          {totalConflicts > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+              <span className={isDark ? 'text-red-400' : 'text-red-600'}>
+                {totalConflicts} コンフリクト
+              </span>
+            </div>
+          )}
+          {totalWarnings > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span className={isDark ? 'text-amber-400' : 'text-amber-600'}>
+                {totalWarnings} 警告
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Content - scrollable */}
+        <div className="overflow-y-auto max-h-[50vh] px-6 py-4 space-y-4">
+          {conflicts.map((emp) => (
+            <div
+              key={emp.employeeId}
+              className={`rounded-lg p-4 ${isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200'}`}
+            >
+              {/* Employee header */}
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                    {emp.employeeName}
+                  </span>
+                  <span className={`ml-2 text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
+                    №{emp.employeeId}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {emp.conflicts.length > 0 && (
+                    <span className="px-2 py-0.5 text-xs rounded bg-red-500/20 text-red-500 font-bold">
+                      {emp.conflicts.length}
+                    </span>
+                  )}
+                  {emp.warnings.length > 0 && (
+                    <span className="px-2 py-0.5 text-xs rounded bg-amber-500/20 text-amber-500 font-bold">
+                      {emp.warnings.length}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Conflicts */}
+              {emp.conflicts.length > 0 && (
+                <div className="space-y-1 mb-2">
+                  {emp.conflicts.map((conflict, idx) => (
+                    <div
+                      key={idx}
+                      className={`text-xs px-3 py-2 rounded flex items-start gap-2 ${isDark ? 'bg-red-500/10 text-red-300' : 'bg-red-50 text-red-700'}`}
+                    >
+                      <span className="mt-0.5">●</span>
+                      <span>{conflict}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Warnings */}
+              {emp.warnings.length > 0 && (
+                <div className="space-y-1">
+                  {emp.warnings.map((warning, idx) => (
+                    <div
+                      key={idx}
+                      className={`text-xs px-3 py-2 rounded flex items-start gap-2 ${isDark ? 'bg-amber-500/10 text-amber-300' : 'bg-amber-50 text-amber-700'}`}
+                    >
+                      <span className="mt-0.5">○</span>
+                      <span>{warning}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className={`px-6 py-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+          <div className="flex justify-between items-center">
+            <p className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+              ローカルのデータは自動的に保持されます
+            </p>
+            <button
+              onClick={onClose}
+              className={`px-6 py-2 rounded-lg font-bold text-sm transition-colors ${isDark
+                ? 'bg-white/10 hover:bg-white/20 text-white'
+                : 'bg-slate-800 hover:bg-slate-700 text-white'
+              }`}
+            >
+              確認
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // Componente Dropzone individual
@@ -626,9 +818,8 @@ const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color,
       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={(e) => { e.preventDefault(); setIsDragging(false); const file = e.dataTransfer.files[0]; if (file) onProcess(file); }}
-      className={`relative border-2 border-dashed p-8 text-center transition-all duration-500 rounded-lg ${
-        isDragging ? `border-${color}-500 scale-[1.02]` : syncStatus.synced ? `border-${color}-500/30` : borderIdle
-      } ${bgColor} ${hoverBorder} ${!isDark && 'shadow-sm'}`}
+      className={`relative border-2 border-dashed p-8 text-center transition-all duration-500 rounded-lg ${isDragging ? `border-${color}-500 scale-[1.02]` : syncStatus.synced ? `border-${color}-500/30` : borderIdle
+        } ${bgColor} ${hoverBorder} ${!isDark && 'shadow-sm'}`}
     >
       <input
         type="file"
@@ -666,13 +857,12 @@ const Dropzone: React.FC<DropzoneProps> = ({ type, title, subtitle, icon, color,
               return (
                 <div
                   key={stage}
-                  className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold transition-all ${
-                    isActive
-                      ? `${color === 'green' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'} animate-pulse`
-                      : isComplete
-                        ? `${isDark ? 'bg-white/10 text-white/60' : 'bg-slate-100 text-slate-500'}`
-                        : `${isDark ? 'bg-white/5 text-white/20' : 'bg-slate-50 text-slate-300'}`
-                  }`}
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold transition-all ${isActive
+                    ? `${color === 'green' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'} animate-pulse`
+                    : isComplete
+                      ? `${isDark ? 'bg-white/10 text-white/60' : 'bg-slate-100 text-slate-500'}`
+                      : `${isDark ? 'bg-white/5 text-white/20' : 'bg-slate-50 text-slate-300'}`
+                    }`}
                 >
                   {isComplete ? '✓' : isActive ? '●' : '○'}
                   <span className="hidden sm:inline">
@@ -746,6 +936,10 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
   const [loadingYukyu, setLoadingYukyu] = useState(false);
   const [progressDaicho, setProgressDaicho] = useState<ProgressState>({ stage: 'idle', percent: 0, message: '' });
   const [progressYukyu, setProgressYukyu] = useState<ProgressState>({ stage: 'idle', percent: 0, message: '' });
+
+  // Estado para modal de conflictos
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [conflicts, setConflicts] = useState<EmployeeConflict[]>([]);
 
   useEffect(() => {
     saveSyncStatus(syncStatus);
@@ -868,6 +1062,9 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         setProgress(setProgressYukyu, 'processing');
         await new Promise(r => setTimeout(r, 100));
 
+        // ⭐ Reset validation context before processing
+        validationContext.reset();
+
         const currentAppData = db.loadData();
         const result = processYukyu(workbook, [...currentAppData.employees], syncStatus.includeResigned);
 
@@ -899,6 +1096,26 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
             lastSync: new Date().toISOString()
           }
         }));
+
+        // ⭐ Show validation results
+        const validationResult = validationContext.getResult();
+        logValidationResult(validationResult);
+
+        if (validationResult.issues.length > 0) {
+          const summaryMsg = validationContext.getSummaryMessage();
+          toast(summaryMsg, {
+            icon: validationResult.summary.errors > 0 ? '⚠️' : 'ℹ️',
+            duration: 5000
+          });
+        } else {
+          toast.success(`${result.count}名の有給データを同期しました`, { duration: 3000 });
+        }
+
+        // ⭐ Mostrar modal de conflictos si existen
+        if (result.employeeConflicts && result.employeeConflicts.length > 0) {
+          setConflicts(result.employeeConflicts);
+          setShowConflictModal(true);
+        }
 
         onSyncComplete();
       } catch (err) {
@@ -978,18 +1195,15 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
       <div className="flex justify-center">
         <button
           onClick={toggleIncludeResigned}
-          className={`flex items-center gap-3 px-6 py-3 rounded-lg border transition-all ${
-            syncStatus.includeResigned
-              ? 'border-red-500/50 bg-red-500/10 text-red-400'
-              : isDark ? 'border-white/10 bg-white/5 text-white/60 hover:border-white/30' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
-          }`}
+          className={`flex items-center gap-3 px-6 py-3 rounded-lg border transition-all ${syncStatus.includeResigned
+            ? 'border-red-500/50 bg-red-500/10 text-red-400'
+            : isDark ? 'border-white/10 bg-white/5 text-white/60 hover:border-white/30' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
+            }`}
         >
-          <div className={`w-10 h-5 rounded-full relative transition-colors ${
-            syncStatus.includeResigned ? 'bg-red-500' : 'bg-white/20'
-          }`}>
-            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-              syncStatus.includeResigned ? 'translate-x-5' : 'translate-x-0.5'
-            }`} />
+          <div className={`w-10 h-5 rounded-full relative transition-colors ${syncStatus.includeResigned ? 'bg-red-500' : 'bg-white/20'
+            }`}>
+            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${syncStatus.includeResigned ? 'translate-x-5' : 'translate-x-0.5'
+              }`} />
           </div>
           <span className="text-sm font-bold">
             {syncStatus.includeResigned ? '退社者を含む' : '在職中のみ'}
@@ -1041,9 +1255,8 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
         {/* Clear All Data Button - Dangerous Action */}
         <button
           onClick={clearAllData}
-          className={`group flex items-center gap-3 px-6 py-3 border-2 border-red-500/30 rounded-lg transition-all hover:border-red-500 hover:bg-red-500/10 ${
-            isDark ? 'bg-red-500/5' : 'bg-red-50'
-          }`}
+          className={`group flex items-center gap-3 px-6 py-3 border-2 border-red-500/30 rounded-lg transition-all hover:border-red-500 hover:bg-red-500/10 ${isDark ? 'bg-red-500/5' : 'bg-red-50'
+            }`}
         >
           <span className="text-2xl">🗑️</span>
           <div className="text-left">
@@ -1078,6 +1291,14 @@ const ExcelSync: React.FC<ExcelSyncProps> = ({ onSyncComplete }) => {
           </p>
         </div>
       </div>
+
+      {/* Modal de Conflictos */}
+      <ConflictModal
+        isOpen={showConflictModal}
+        onClose={() => setShowConflictModal(false)}
+        conflicts={conflicts}
+        isDark={isDark}
+      />
     </div>
   );
 };
